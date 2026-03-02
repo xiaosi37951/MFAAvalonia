@@ -12,6 +12,7 @@ public sealed class InstanceConfiguration
 {
     private readonly string _instanceId;
     private Dictionary<string, object> _config;
+    private volatile bool _isDeleted;
 
     internal static readonly string InstancesDir = Path.Combine(
         AppContext.BaseDirectory, "config", "instances");
@@ -48,6 +49,8 @@ public sealed class InstanceConfiguration
     /// </summary>
     private void SaveInstanceConfig()
     {
+        if (_isDeleted) return;
+
         if (!Directory.Exists(InstancesDir))
             Directory.CreateDirectory(InstancesDir);
 
@@ -65,7 +68,7 @@ public sealed class InstanceConfiguration
 
     public void SetValue(string key, object? value)
     {
-        if (value == null) return;
+        if (value == null || _isDeleted) return;
         _config[key] = value;
         SaveInstanceConfig();
     }
@@ -368,6 +371,7 @@ public sealed class InstanceConfiguration
     /// </summary>
     public void DeleteConfigFile()
     {
+        _isDeleted = true;
         var filePath = GetConfigFilePath();
         if (File.Exists(filePath))
             File.Delete(filePath);
