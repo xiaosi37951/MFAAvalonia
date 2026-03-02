@@ -103,8 +103,8 @@ public class MaaInterfaceSelectOptionConverter(bool serializeAsStringArray) : Js
                         obj["data"] = JObject.FromObject(option.Data);
                     }
 
-                    // 保存 checkbox 类型的 SelectedCases
-                    if (option.SelectedCases != null && option.SelectedCases.Count > 0)
+                    // 保存 checkbox 类型的 SelectedCases（空列表也需保存，否则预设"全部取消"会丢失）
+                    if (option.SelectedCases != null)
                     {
                         obj["selected_cases"] = new JArray(option.SelectedCases);
                     }
@@ -126,7 +126,7 @@ public class MaaInterfaceSelectOptionConverter(bool serializeAsStringArray) : Js
                                 subObj["data"] = JObject.FromObject(subOption.Data);
                             }
 
-                            if (subOption.SelectedCases != null && subOption.SelectedCases.Count > 0)
+                            if (subOption.SelectedCases != null)
                             {
                                 subObj["selected_cases"] = new JArray(subOption.SelectedCases);
                             }
@@ -168,7 +168,7 @@ public class MaaInterfaceSelectOptionConverter(bool serializeAsStringArray) : Js
                 obj["data"] = JObject.FromObject(option.Data);
             }
 
-            if (option.SelectedCases != null && option.SelectedCases.Count > 0)
+            if (option.SelectedCases != null)
             {
                 obj["selected_cases"] = new JArray(option.SelectedCases);
             }
