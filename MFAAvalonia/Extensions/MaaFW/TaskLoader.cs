@@ -59,6 +59,9 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
             drags = items.Select(interfaceItem => new DragItemViewModel(interfaceItem) { OwnerViewModel = taskQueueViewModel }).ToList();
         }
 
+        // 检测是否为全新实例（无任何已保存配置）
+        var isConfigEmpty = (oldDrags == null || oldDrags.Count == 0) && drags.Count == 0 && currentTasks.Count == 0;
+
         if (firstTask)
         {
             InitializeResources();
@@ -84,6 +87,18 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         }
 
         UpdateViewModels(updateList, tasks, tasksSource);
+
+        // 如果配置均为空且预设不为空，使用所有预设作为默认值
+        if (isConfigEmpty && maaInterface?.Preset is { Count: > 0 } presets)
+        {
+            DispatcherHelper.RunOnMainThread(() =>
+            {
+                foreach (var preset in presets)
+                {
+                    taskQueueViewModel.ApplyPresetCommand.Execute(preset);
+                }
+            });
+        }
     }
 
     private void InitializeResources()
