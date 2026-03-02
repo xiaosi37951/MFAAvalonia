@@ -301,15 +301,24 @@ public partial class InstanceTabBarViewModel : ViewModelBase
 
         await Task.Run(() => processor.InitializeData());
 
-        // 如果指定了预设，应用到新实例的 ViewModel
+        // 如果指定了预设，应用到新实例的 ViewModel，并使用预设的显示名称
         if (preset != null)
         {
             processor.ViewModel?.ApplyPresetCommand.Execute(preset);
+            var presetDisplayName = preset.DisplayName;
+            if (!string.IsNullOrWhiteSpace(presetDisplayName))
+            {
+                MaaProcessorManager.Instance.SetInstanceName(processor.InstanceId, presetDisplayName);
+            }
         }
 
         var tab = Tabs.FirstOrDefault(t => t.Processor == processor);
         if (tab != null)
+        {
+            if (preset != null)
+                tab.UpdateName();
             ActiveTab = tab;
+        }
     }
 
     [RelayCommand]
