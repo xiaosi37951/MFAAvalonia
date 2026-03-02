@@ -2,9 +2,11 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace MFAAvalonia.Views.UserControls;
 
@@ -38,6 +40,8 @@ public class MarqueeTextBlock : TemplatedControl
     private bool _needsScrolling;
     private bool _isHovering;
     private DateTime _lastTickTime;
+    private Button? _parentButton;
+    private bool _isInsideButton;
 
     #region Styled Properties
 
@@ -99,20 +103,58 @@ public class MarqueeTextBlock : TemplatedControl
         UpdateMeasurements();
     }
 
-    protected override void OnPointerEntered(Avalonia.Input.PointerEventArgs e)
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        base.OnPointerEntered(e);
-        _isHovering = true;
-        
-        if (_needsScrolling)
+        base.OnAttachedToVisualTree(e);
+        _parentButton = this.FindAncestorOfType<Button>();
+        _isInsideButton = _parentButton != null;
+        if (_isInsideButton)
         {
-            StartAnimation();
+            _parentButton!.PointerMoved += OnParentPointerMoved;
+            _parentButton.PointerExited += OnParentPointerExited;
         }
     }
 
-    protected override void OnPointerExited(Avalonia.Input.PointerEventArgs e)
+    private void OnParentPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_canvas == null) return;
+        var pos = e.GetPosition(_canvas);
+        var isOver = new Rect(0, 0, _canvas.Width, _canvas.Height).Contains(pos);
+        if (isOver && !_isHovering)
+        {
+            _isHovering = true;
+            if (_needsScrolling) StartAnimation();
+        }
+        else if (!isOver && _isHovering)
+        {
+            _isHovering = false;
+            StopAnimation();
+            ResetPosition();
+        }
+    }
+
+    private void OnParentPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (_isHovering)
+        {
+            _isHovering = false;
+            StopAnimation();
+            ResetPosition();
+        }
+    }
+
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        if (_isInsideButton) return;
+        _isHovering = true;
+        if (_needsScrolling) StartAnimation();
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
+        if (_isInsideButton) return;
         _isHovering = false;
         StopAnimation();
         ResetPosition();
@@ -300,6 +342,14 @@ public class MarqueeTextBlock : TemplatedControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        if (_isInsideButton && _parentButton != null)
+        {
+            _parentButton.PointerMoved -= OnParentPointerMoved;
+            _parentButton.PointerExited -= OnParentPointerExited;
+            _parentButton = null;
+        }
+        _isInsideButton = false;
+
         base.OnDetachedFromVisualTree(e);
         
         StopAnimation();

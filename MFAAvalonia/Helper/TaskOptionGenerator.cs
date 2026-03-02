@@ -383,6 +383,13 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 }
                 if (maxWidth > 0)
                 {
+                    // 限制最大宽度不超过容器宽度减去按钮 Margin
+                    var containerWidth = container.Bounds.Width;
+                    if (containerWidth > 0)
+                    {
+                        var btnMarginH = 2 + 6; // Margin Left + Right
+                        maxWidth = Math.Min(maxWidth, containerWidth - btnMarginH);
+                    }
                     foreach (var child in wrapPanel.Children)
                     {
                         if (child is ToggleButton btn)
