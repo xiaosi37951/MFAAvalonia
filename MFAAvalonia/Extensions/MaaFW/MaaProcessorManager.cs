@@ -28,10 +28,11 @@ public sealed class MaaProcessorManager
     private MaaProcessorManager()
     {
         // 构造函数初始化默认状态，后续 LoadInstanceConfig 可覆盖
+        // 注意：不调用 SetValue 写磁盘，避免每次启动都创建 default.json
+        // 导致 ScanUnregisteredInstanceFiles 误将其识别为新实例
         Current = CreateInstanceInternal("default", setCurrent: true);
         var defaultName = $"{LangKeys.Config.ToLocalization()} 1";
         _instanceNames["default"] = defaultName;
-        Current.InstanceConfiguration.SetValue(ConfigurationKeys.InstanceName, defaultName);
         _instanceOrder.Add("default");
     }
 
@@ -673,6 +674,14 @@ public sealed class MaaProcessorManager
             ? Array.Empty<string>()
             : listStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
+        // 构造函数创建的 "default" 实例的 GetValue 回退迁移可能已写出 default.json，
+        // 如果 "default" 不在注册列表中，先删除该文件，防止扫描误识别为新实例
+        if (!registeredIds.Contains("default"))
+        {
+            var defaultFilePath = Path.Combine(InstanceConfiguration.InstancesDir, "default.json");
+            try { if (File.Exists(defaultFilePath)) File.Delete(defaultFilePath); } catch { /* ignore */ }
+        }
+
         // 扫描 config/instances/ 目录，将手动复制进去的 JSON 文件也识别为实例
         var extraIds = ScanUnregisteredInstanceFiles(registeredIds);
         var ids = registeredIds.Concat(extraIds).ToArray();
@@ -748,13 +757,14 @@ public sealed class MaaProcessorManager
             if (extraIds.Count > 0)
                 SaveInstanceConfig();
 
-            // 2. 清理不在配置中的实例
+            // 2. 清理不在配置中的实例（含磁盘文件，防止构造函数创建的临时实例残留）
             var validIds = new HashSet<string>(ids);
             var toRemove = _instances.Keys.Where(k => !validIds.Contains(k)).ToList();
             foreach (var key in toRemove)
             {
                 if (_instances.TryGetValue(key, out var p))
                 {
+                    p.InstanceConfiguration.DeleteConfigFile();
                     p.Dispose();
                     _instances.Remove(key);
                     _instanceNames.Remove(key);

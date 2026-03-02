@@ -242,6 +242,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             DispatcherHelper.PostOnMainThread(() =>
             {
                 SelectedController = targetController;
+                _isSyncing = false;
             });
         }
         catch (Exception e)
@@ -253,6 +254,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             DispatcherHelper.PostOnMainThread(() =>
             {
                 SelectedController = ControllerOptions.FirstOrDefault();
+                _isSyncing = false;
             });
         }
     }
@@ -331,10 +333,7 @@ public partial class TaskQueueViewModel : ViewModelBase
         catch (Exception e)
         {
             LoggerHelper.Error(e);
-        }
-        finally
-        {
-            DispatcherHelper.PostOnMainThread(() => _isSyncing = false);
+            _isSyncing = false;
         }
     }
 
@@ -847,7 +846,7 @@ public partial class TaskQueueViewModel : ViewModelBase
         Processor.InstanceConfiguration.SetValue(ConfigurationKeys.CurrentController, value.ToString());
         if (Instances.IsResolved<ConnectSettingsUserControlModel>())
             Instances.ConnectSettingsUserControlModel.CurrentControllerType = value;
-        UpdateResourcesForController();
+        UpdateResourcesForController(CurrentResource);
         if (value == MaaControllerTypes.PlayCover)
         {
             TryReadPlayCoverConfig();
