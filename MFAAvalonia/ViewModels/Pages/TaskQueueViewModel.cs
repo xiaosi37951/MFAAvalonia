@@ -1088,9 +1088,10 @@ public partial class TaskQueueViewModel : ViewModelBase
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     [RelayCommand]
-    private void Export()
+    private async Task Export()
     {
-        FileLogExporter.CompressRecentLogs(Instances.RootView.StorageProvider);
+        var storageProvider = Instances.RootView?.StorageProvider;
+        await FileLogExporter.CompressRecentLogs(storageProvider);
     }
 
     public void AutoDetectDevice(CancellationToken token = default)

@@ -1,4 +1,4 @@
-﻿using Avalonia.Platform.Storage;
+using Avalonia.Platform.Storage;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using System;
@@ -25,7 +25,7 @@ public static class FileLogExporter
         ".webp"
     };
     private static readonly string ExcludedFolder = "vision";
-    public async static Task CompressRecentLogs(IStorageProvider storageProvider)
+    public async static Task CompressRecentLogs(IStorageProvider? storageProvider)
     {
         if (Instances.RootViewModel.IsRunning)
         {
@@ -34,10 +34,26 @@ public static class FileLogExporter
                 LangKeys.StopTaskBeforeExportLog.ToLocalization());
             return;
         }
-        MaaProcessorManager.Instance.Current.SetTasker();
+
+        // try
+        // {
+        //     MaaProcessorManager.Instance.Current.SetTasker();
+        // }
+        // catch (Exception ex)
+        // {
+        //     LoggerHelper.Error($"SetTasker failed before log export: {ex}");
+        //     ToastHelper.Error(
+        //         LangKeys.ExportLog.ToLocalization(),
+        //         ex.Message);
+        //     return;
+        // }
 
         if (storageProvider == null)
-            throw new ArgumentNullException(nameof(storageProvider));
+        {
+            ToastHelper.Error("导出日志失败!");
+            LoggerHelper.Error("storageProvider is null!");
+            return;
+        }
 
         try
         {
