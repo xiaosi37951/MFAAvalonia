@@ -1192,7 +1192,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         comboBox.SelectionBoxItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((caseOption, _) => CreateComboBoxItemContent(caseOption, false));
     }
     
-    private Control CreateComboBoxItemContent(MaaInterface.MaaInterfaceOptionCase caseOption, bool isMarquee)
+    private Control CreateComboBoxItemContent(MaaInterface.MaaInterfaceOptionCase? caseOption, bool isMarquee)
     {
          var grid = new Grid
          {
@@ -1206,8 +1206,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
          };
          
          var iconDisplay = new DisplayIcon { IconSize = 20, Margin = new Thickness(0,0,6,0), VerticalAlignment = VerticalAlignment.Center };
-         iconDisplay.Bind(DisplayIcon.IconSourceProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.ResolvedIcon)));
-         iconDisplay.Bind(Visual.IsVisibleProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.HasIcon)));
+         iconDisplay.Bind(DisplayIcon.IconSourceProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.ResolvedIcon)) { Source = caseOption });
+         iconDisplay.Bind(Visual.IsVisibleProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.HasIcon)) { Source = caseOption });
          Grid.SetColumn(iconDisplay, 0);
 
          Control textControl;
@@ -1215,8 +1215,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
          {
              var marquee = new MarqueeTextBlock { VerticalContentAlignment = VerticalAlignment.Center };
              marquee.Bind(MarqueeTextBlock.ForegroundProperty, new DynamicResourceExtension("SukiText"));
-             marquee.Bind(MarqueeTextBlock.TextProperty, new Binding(nameof(caseOption.DisplayName)));
-             marquee.Bind(ToolTip.TipProperty, new Binding(nameof(caseOption.DisplayName)));
+             marquee.Bind(MarqueeTextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
+             marquee.Bind(ToolTip.TipProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
              ToolTip.SetShowDelay(marquee, 100);
              textControl = marquee;
          }
@@ -1224,20 +1224,18 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
          {
              var tb = new TextBlock { TextTrimming = TextTrimming.WordEllipsis, TextWrapping = TextWrapping.NoWrap, VerticalAlignment = VerticalAlignment.Center };
              tb.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiText"));
-             tb.Bind(TextBlock.TextProperty, new Binding(nameof(caseOption.DisplayName)));
-             tb.Bind(ToolTip.TipProperty, new Binding(nameof(caseOption.DisplayName)));
+             tb.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
+             tb.Bind(ToolTip.TipProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
              textControl = tb;
          }
          Grid.SetColumn(textControl, 1);
          
-         // 只在有描述时添加 TooltipBlock
-         if (caseOption.HasDescription)
-         {
-             var tooltipBlock = new TooltipBlock { Margin = new Thickness(4, 0, 0, 0) };
-             tooltipBlock.Bind(TooltipBlock.TooltipTextProperty, new Binding(nameof(caseOption.DisplayDescription)));
-             Grid.SetColumn(tooltipBlock, 2);
-             grid.Children.Add(tooltipBlock);
-         }
+         // 始终创建 TooltipBlock，由绑定控制可见性，避免模板回收阶段 caseOption 为空时空引用
+         var tooltipBlock = new TooltipBlock { Margin = new Thickness(4, 0, 0, 0) };
+         tooltipBlock.Bind(TooltipBlock.TooltipTextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayDescription)) { Source = caseOption });
+         tooltipBlock.Bind(Visual.IsVisibleProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.HasDescription)) { Source = caseOption });
+         Grid.SetColumn(tooltipBlock, 2);
+         grid.Children.Add(tooltipBlock);
          
          grid.Children.Add(iconDisplay);
          grid.Children.Add(textControl);
