@@ -20,6 +20,35 @@
     <Design.DataContext>
         <settings:TimerSettingsUserControlModel />
     </Design.DataContext>
+    <UserControl.Styles>
+        <Style Selector="Button.AddTimerButton">
+            <Setter Property="MinWidth" Value="44" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="RenderTransform">
+                <ScaleTransform ScaleX="1" ScaleY="1" />
+            </Setter>
+        </Style>
+        <Style Selector="Button.AddTimerButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor15}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor25}" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor75}" />
+            <Setter Property="RenderTransform">
+                <ScaleTransform ScaleX="1.12" ScaleY="1.12" />
+            </Setter>
+        </Style>
+        <Style Selector="Button.AddTimerButton:pressed">
+            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor25}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor75}" />
+            <Setter Property="RenderTransform">
+                <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
+            </Setter>
+        </Style>
+    </UserControl.Styles>
     <StackPanel Spacing="8">
         <TextBlock
             FontWeight="SemiBold"
@@ -198,25 +227,15 @@
         </ItemsControl>
 
         <Button
-            Classes="Basic"
+            Classes="Basic Round AddTimerButton"
             Command="{Binding TimerModels.AddTimerCommand}"
             Content="+"
             FontSize="28"
             FontWeight="Bold"
             Foreground="{DynamicResource SukiPrimaryColor}"
             HorizontalAlignment="Center"
-            RenderTransformOrigin="50%,50%"
+            Margin="0,4,0,14"
             ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.AddTimer}}">
-            <Button.RenderTransform>
-                <ScaleTransform ScaleX="1" ScaleY="1" />
-            </Button.RenderTransform>
-            <Button.Styles>
-                <Style Selector="Button:pointerover">
-                    <Setter Property="RenderTransform">
-                        <ScaleTransform ScaleX="1.2" ScaleY="1.2" />
-                    </Setter>
-                </Style>
-            </Button.Styles>
         </Button>
     </StackPanel>
 </UserControl>
