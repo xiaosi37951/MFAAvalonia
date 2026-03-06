@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Media;
@@ -47,14 +47,6 @@ public static class IconElement
                 NewValue : { HasValue: true, Value: Geometry geometry }
             })
         {
-            btn[!Button.ForegroundProperty] = new Binding(nameof(Button.Foreground))
-            {
-                RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
-                {
-                    AncestorType = typeof(Button)
-                }
-            };
-
             UpdateButtonContent(btn, geometry);
         }
     }
@@ -73,10 +65,7 @@ public static class IconElement
             Height = 12,
             [!PathIcon.ForegroundProperty] = new Binding(nameof(Button.Foreground))
             {
-                RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
-                {
-                    AncestorType = typeof(Button)
-                }
+                Source = button
             }
         };
         if (!double.IsNaN(GetHeight(button)))
@@ -86,3 +75,4 @@ public static class IconElement
         button.Content = pathIcon;
     }
 }
+

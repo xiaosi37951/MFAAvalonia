@@ -2908,17 +2908,17 @@ public class MaaProcessor
 
     private void InitializeConnectionTasksAsync(CancellationToken token)
     {
-        TaskQueue.Enqueue(CreateMFATask("启动脚本", async () =>
+        TaskQueue.Enqueue(CreateMFATask(LangKeys.Prescript.ToLocalization(), async () =>
         {
             await TaskManager.RunTaskAsync(async () => await RunScript(), token: token, name: "启动附加开始脚本");
         }));
 
-        TaskQueue.Enqueue(CreateMFATask("连接设备", async () =>
+        TaskQueue.Enqueue(CreateMFATask(LangKeys.Connection.ToLocalization(), async () =>
         {
             await HandleDeviceConnectionAsync(token);
         }));
 
-        TaskQueue.Enqueue(CreateMFATask("性能基准", async () =>
+        TaskQueue.Enqueue(CreateMFATask(LangKeys.PerformanceBenchmark.ToLocalization(), async () =>
         {
             await MeasureScreencapPerformanceAsync(token);
         }));
@@ -2958,7 +2958,7 @@ public class MaaProcessor
             {
                 MaaControllerTypes.Adb => LangKeys.Emulator,
                 MaaControllerTypes.Win32 => LangKeys.Window,
-                MaaControllerTypes.PlayCover => "TabPlayCover",
+                MaaControllerTypes.PlayCover => LangKeys.TabPlayCover,
                 _ => LangKeys.Window
             };
             var beforeTask = InstanceConfiguration.GetValue(ConfigurationKeys.BeforeTask, "None");
@@ -3076,7 +3076,7 @@ public class MaaProcessor
         {
             MaaControllerTypes.Adb => LangKeys.Emulator,
             MaaControllerTypes.Win32 => LangKeys.Window,
-            MaaControllerTypes.PlayCover => "TabPlayCover",
+            MaaControllerTypes.PlayCover => LangKeys.TabPlayCover,
             _ => LangKeys.Window
         };
         ToastHelper.Warn(LangKeys.Warning_CannotConnect.ToLocalizationFormatted(true, targetKey));
@@ -3123,14 +3123,14 @@ public class MaaProcessor
     {
         if (!onlyStart)
         {
-            TaskQueue.Enqueue(CreateMFATask("结束脚本", async () =>
+            TaskQueue.Enqueue(CreateMFATask(LangKeys.Postscript.ToLocalization(), async () =>
             {
                 await TaskManager.RunTaskAsync(async () => await RunScript("Post-script"), token: token, name: "启动附加结束脚本");
             }));
         }
         if (checkUpdate)
         {
-            TaskQueue.Enqueue(CreateMFATask("检查更新", async () =>
+            TaskQueue.Enqueue(CreateMFATask(LangKeys.CheckUpdate.ToLocalization(), async () =>
             {
                 VersionChecker.Check();
             }, isUpdateRelated: true));

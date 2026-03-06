@@ -175,7 +175,8 @@
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}">
                     <Panel>
-                        <Panel Margin="{TemplateBinding Padding}">
+                        <Panel Margin="{TemplateBinding Padding}"
+                               ClipToBounds="True">
                             <ContentPresenter Name="PART_ContentPresenter"
                                               Margin="0,0,18,0"
                                               ContentTemplate="{TemplateBinding HeaderTemplate}"
@@ -235,6 +236,11 @@
 
         <!-- PointerOver: 隐藏分隔线 -->
         <Style Selector="^:pointerover /template/ Border#PART_RightBorder">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+
+        <!-- 由 InstanceTabsControl 显式控制：隐藏右分隔线（包括“当前标签左侧”那条） -->
+        <Style Selector="^:hide-right-separator /template/ Border#PART_RightBorder">
             <Setter Property="IsVisible" Value="False" />
         </Style>
 

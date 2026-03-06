@@ -161,6 +161,9 @@
     <data name="CheckMFA" xml:space="preserve">
         <value>检查软件</value>
     </data>
+    <data name="CheckUpdate" xml:space="preserve">
+        <value>检查更新</value>
+    </data>
     <data name="CheckResource" xml:space="preserve">
         <value>检查资源</value>
     </data>
@@ -221,8 +224,11 @@
     <data name="ConnectingEmulatorOrWindow" xml:space="preserve">
         <value>连接{0}时发生错误！</value>
     </data>
-    <data name="ConnectingTo" xml:space="preserve">
+  <data name="ConnectingTo" xml:space="preserve">
         <value>正在连接至{0}......</value>
+    </data>
+    <data name="ConnectingInProgress" xml:space="preserve">
+        <value>正在连接中，请稍候...</value>
     </data>
     <data name="Connection" xml:space="preserve">
         <value>连接</value>
@@ -752,6 +758,9 @@
     </data>
     <data name="PerformanceSettings" xml:space="preserve">
         <value>性能设置</value>
+    </data>
+    <data name="PerformanceBenchmark" xml:space="preserve">
+        <value>性能基准</value>
     </data>
     <data name="PipelineLoadError" xml:space="preserve">
         <value>载入Pipeline文件时出现错误: {0}</value>
@@ -1312,6 +1321,9 @@
         <value>当前截图为空! 请点击【截图测试】获取截图
 </value>
     </data>
+    <data name="ScreenshotPlaceholder" xml:space="preserve">
+        <value>暂无截图</value>
+    </data>
     <data name="SaveScreenshot" xml:space="preserve">
         <value>保存截图</value>
     </data>
@@ -1536,8 +1548,17 @@
     <data name="UseFingerprintMatching" xml:space="preserve">
         <value>使用指纹匹配设备</value>
     </data>
-    <data name="LiveView" xml:space="preserve">
+<data name="LiveView" xml:space="preserve">
         <value>实时视图</value>
+    </data>
+    <data name="LiveViewNoImageReasonAdb" xml:space="preserve">
+        <value>可能原因: 模拟器窗口最小化/屏幕关闭、截图方式不兼容、设备未完全启动</value>
+    </data>
+    <data name="LiveViewNoImageReasonWindow" xml:space="preserve">
+        <value>可能原因: 目标窗口最小化/隐藏/被遮挡、截图方式不兼容</value>
+    </data>
+    <data name="LiveViewNoImageWarning" xml:space="preserve">
+        <value>实时画面已连接但无法获取画面 ({0}), {1}</value>
     </data>
     <data name="Running" xml:space="preserve">
         <value>运行中</value>
@@ -1554,8 +1575,11 @@
     <data name="PlayCoverBundleIdentifier" xml:space="preserve">
         <value>应用标识符</value>
     </data>
-    <data name="PlayCoverAddressEmpty" xml:space="preserve">
+<data name="PlayCoverAddressEmpty" xml:space="preserve">
         <value>PlayCover 地址不能为空</value>
+    </data>
+    <data name="PlayCoverEditor" xml:space="preserve">
+        <value>PlayCover 编辑器</value>
     </data>
     <data name="Reconnect" xml:space="preserve">
         <value>重新连接</value>
@@ -1914,6 +1938,9 @@
     <data name="InstanceAddFollowLast" xml:space="preserve">
         <value>跟随最右侧配置</value>
     </data>
+    <data name="InstancePresetTaskCountFormat" xml:space="preserve">
+        <value>{0} 个任务</value>
+    </data>
     <data name="InstanceCannotCloseLast" xml:space="preserve">
         <value>不能关闭最后一个实例</value>
     </data>
@@ -1940,6 +1967,30 @@
     </data>
     <data name="MonitorSortByCreatedTime" xml:space="preserve">
         <value>按创建时间</value>
+    </data>
+    <data name="MonitorForceRefresh" xml:space="preserve">
+        <value>强制刷新</value>
+    </data>
+    <data name="MonitorFullScreen" xml:space="preserve">
+        <value>全屏显示</value>
+    </data>
+    <data name="MonitorCopyScreenshot" xml:space="preserve">
+        <value>复制截图</value>
+    </data>
+    <data name="MonitorDisconnect" xml:space="preserve">
+        <value>断开连接</value>
+    </data>
+    <data name="MonitorTryConnect" xml:space="preserve">
+        <value>尝试连接</value>
+    </data>
+    <data name="MonitorLiveBadge" xml:space="preserve">
+        <value>LIVE</value>
+    </data>
+    <data name="ZoomOut" xml:space="preserve">
+        <value>缩小</value>
+    </data>
+    <data name="ZoomIn" xml:space="preserve">
+        <value>放大</value>
     </data>
     <data name="TimerStopConnectedProcess" xml:space="preserve">
         <value>关闭连接的进程</value>

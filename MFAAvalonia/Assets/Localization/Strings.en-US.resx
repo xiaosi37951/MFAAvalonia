@@ -153,6 +153,9 @@
     <data name="CheckMFA" xml:space="preserve">
         <value>Check Software</value>
     </data>
+    <data name="CheckUpdate" xml:space="preserve">
+        <value>Check updates</value>
+    </data>
     <data name="CheckResource" xml:space="preserve">
         <value>Check resources</value>
     </data>
@@ -213,8 +216,11 @@
     <data name="ConnectingEmulatorOrWindow" xml:space="preserve">
         <value>Error connecting to {0}!</value>
     </data>
-    <data name="ConnectingTo" xml:space="preserve">
+  <data name="ConnectingTo" xml:space="preserve">
         <value>Connecting to {0}......</value>
+    </data>
+    <data name="ConnectingInProgress" xml:space="preserve">
+        <value>Connecting, please wait...</value>
     </data>
     <data name="Connection" xml:space="preserve">
         <value>Connection</value>
@@ -743,6 +749,9 @@
     </data>
     <data name="PerformanceSettings" xml:space="preserve">
         <value>Performance</value>
+    </data>
+    <data name="PerformanceBenchmark" xml:space="preserve">
+        <value>Performance benchmark</value>
     </data>
     <data name="PipelineLoadError" xml:space="preserve">
         <value>Error occurred while loading Pipeline file: {0}</value>
@@ -1296,6 +1305,9 @@
     <data name="ScreenshotEmpty" xml:space="preserve">
         <value>The current screenshot is empty! Please click [Screenshot Test] to get a screenshot</value>
     </data>
+    <data name="ScreenshotPlaceholder" xml:space="preserve">
+        <value>No screenshot</value>
+    </data>
     <data name="SaveScreenshot" xml:space="preserve">
         <value>Save Screenshot</value>
     </data>
@@ -1526,8 +1538,17 @@
     <data name="UseFingerprintMatching" xml:space="preserve">
         <value>Use Fingerprint Matching</value>
     </data>
-    <data name="LiveView" xml:space="preserve">
+<data name="LiveView" xml:space="preserve">
         <value>Live View</value>
+    </data>
+    <data name="LiveViewNoImageReasonAdb" xml:space="preserve">
+        <value>Possible causes: emulator window minimized/screen off, incompatible screencap mode, or device not fully started</value>
+    </data>
+    <data name="LiveViewNoImageReasonWindow" xml:space="preserve">
+        <value>Possible causes: target window minimized/hidden/occluded, incompatible screencap mode</value>
+    </data>
+    <data name="LiveViewNoImageWarning" xml:space="preserve">
+        <value>Live view is connected but no frame is available ({0}), {1}</value>
     </data>
     <data name="Running" xml:space="preserve">
         <value>Running</value>
@@ -1544,8 +1565,11 @@
     <data name="PlayCoverBundleIdentifier" xml:space="preserve">
         <value>Bundle Identifier</value>
     </data>
-    <data name="PlayCoverAddressEmpty" xml:space="preserve">
+<data name="PlayCoverAddressEmpty" xml:space="preserve">
         <value>PlayCover address cannot be empty</value>
+    </data>
+    <data name="PlayCoverEditor" xml:space="preserve">
+        <value>PlayCover Editor</value>
     </data>
     <data name="Reconnect" xml:space="preserve">
         <value>Reconnect</value>
@@ -1904,6 +1928,9 @@
     <data name="InstanceAddFollowLast" xml:space="preserve">
         <value>Follow Rightmost Config</value>
     </data>
+    <data name="InstancePresetTaskCountFormat" xml:space="preserve">
+        <value>{0} tasks</value>
+    </data>
     <data name="InstanceCannotCloseLast" xml:space="preserve">
         <value>Cannot close the last instance</value>
     </data>
@@ -1930,6 +1957,30 @@
     </data>
     <data name="MonitorSortByCreatedTime" xml:space="preserve">
         <value>By Created Time</value>
+    </data>
+    <data name="MonitorForceRefresh" xml:space="preserve">
+        <value>Force refresh</value>
+    </data>
+    <data name="MonitorFullScreen" xml:space="preserve">
+        <value>Full screen</value>
+    </data>
+    <data name="MonitorCopyScreenshot" xml:space="preserve">
+        <value>Copy screenshot</value>
+    </data>
+    <data name="MonitorDisconnect" xml:space="preserve">
+        <value>Disconnect</value>
+    </data>
+    <data name="MonitorTryConnect" xml:space="preserve">
+        <value>Try connect</value>
+    </data>
+    <data name="MonitorLiveBadge" xml:space="preserve">
+        <value>LIVE</value>
+    </data>
+    <data name="ZoomOut" xml:space="preserve">
+        <value>Zoom out</value>
+    </data>
+    <data name="ZoomIn" xml:space="preserve">
+        <value>Zoom in</value>
     </data>
     <data name="TimerStopConnectedProcess" xml:space="preserve">
         <value>Close connected process</value>

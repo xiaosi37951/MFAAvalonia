@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d"
@@ -12,6 +12,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:settings="clr-namespace:MFAAvalonia.ViewModels.Pages"
     xmlns:suki="https://github.com/kikipoulet/SukiUI"
+    xmlns:fluent1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:extensions="clr-namespace:SukiUI.Extensions;assembly=SukiUI">
     <Design.PreviewWith>
@@ -39,15 +40,7 @@
                         </ComboBox.Styles>
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid ColumnDefinitions="*,40">
-                                    <Grid.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem
-                                                Command="{Binding DeleteConfigurationCommand}"
-                                                CommandParameter="{Binding}"
-                                                Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
-                                        </ContextMenu>
-                                    </Grid.ContextMenu>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                     <TextBlock
                                         Background="Transparent"
                                         Foreground="{DynamicResource SukiText}"
@@ -59,16 +52,18 @@
                                         Classes="Basic Round"
                                         Command="{Binding DeleteConfigurationCommand}"
                                         CommandParameter="{Binding}"
-                                        FontWeight="Bold"
                                         Grid.Column="1"
+                                        Width="20"
+                                        Height="20"
+                                        Padding="0"
                                         HorizontalAlignment="Right"
                                         HorizontalContentAlignment="Center"
-                                        VerticalAlignment="Center">
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Delete}}">
                                         <fluent:FluentIcon
-                                            Icon="Delete"
-                                            IconSize="Size16"
-                                            IconVariant="Regular"
-                                            />
+                                            Icon="Dismiss"
+                                            IconSize="Size12"
+                                            IconVariant="Regular" />
                                     </Button>
                                 </Grid>
                             </DataTemplate>

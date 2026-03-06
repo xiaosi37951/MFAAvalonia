@@ -153,6 +153,9 @@
     <data name="CheckMFA" xml:space="preserve">
         <value>檢查軟體</value>
     </data>
+    <data name="CheckUpdate" xml:space="preserve">
+        <value>檢查更新</value>
+    </data>
     <data name="CheckResource" xml:space="preserve">
         <value>檢查資源</value>
     </data>
@@ -213,8 +216,11 @@
     <data name="ConnectingEmulatorOrWindow" xml:space="preserve">
         <value>連接{0}時發生錯誤！ </value>
     </data>
-    <data name="ConnectingTo" xml:space="preserve">
+  <data name="ConnectingTo" xml:space="preserve">
         <value>正在連接至{0}......</value>
+    </data>
+    <data name="ConnectingInProgress" xml:space="preserve">
+        <value>正在連接中，請稍候...</value>
     </data>
     <data name="Connection" xml:space="preserve">
         <value>連接</value>
@@ -743,6 +749,9 @@
     </data>
     <data name="PerformanceSettings" xml:space="preserve">
         <value>效能設定</value>
+    </data>
+    <data name="PerformanceBenchmark" xml:space="preserve">
+        <value>效能基準</value>
     </data>
     <data name="PipelineLoadError" xml:space="preserve">
         <value>載入Pipeline檔案時發生錯誤: {0}</value>
@@ -1299,6 +1308,9 @@
     <data name="ScreenshotEmpty" xml:space="preserve">
         <value>目前截圖為空! 請點擊【截圖測試】獲取截圖</value>
     </data>
+    <data name="ScreenshotPlaceholder" xml:space="preserve">
+        <value>暫無截圖</value>
+    </data>
     <data name="SaveScreenshot" xml:space="preserve">
         <value>儲存截圖</value>
     </data>
@@ -1526,8 +1538,17 @@
     <data name="CurrentTask" xml:space="preserve">
         <value>任務: {0}</value>
     </data>
-    <data name="LiveView" xml:space="preserve">
+<data name="LiveView" xml:space="preserve">
         <value>即時視圖</value>
+    </data>
+    <data name="LiveViewNoImageReasonAdb" xml:space="preserve">
+        <value>可能原因: 模擬器視窗最小化/螢幕關閉、截圖方式不相容、裝置尚未完全啟動</value>
+    </data>
+    <data name="LiveViewNoImageReasonWindow" xml:space="preserve">
+        <value>可能原因: 目標視窗最小化/隱藏/被遮擋、截圖方式不相容</value>
+    </data>
+    <data name="LiveViewNoImageWarning" xml:space="preserve">
+        <value>即時畫面已連接但無法取得畫面 ({0}), {1}</value>
     </data>
     <data name="LiveViewRefreshRate" xml:space="preserve">
         <value>即時視圖最大刷新率 (FPS)</value>
@@ -1538,8 +1559,11 @@
     <data name="PlayCoverBundleIdentifier" xml:space="preserve">
         <value>應用識別碼</value>
     </data>
-    <data name="PlayCoverAddressEmpty" xml:space="preserve">
+<data name="PlayCoverAddressEmpty" xml:space="preserve">
         <value>PlayCover 位址不能為空</value>
+    </data>
+    <data name="PlayCoverEditor" xml:space="preserve">
+        <value>PlayCover 編輯器</value>
     </data>
     <data name="Reconnect" xml:space="preserve">
         <value>重新連接</value>
@@ -1904,6 +1928,9 @@
     <data name="InstanceAddFollowLast" xml:space="preserve">
         <value>跟隨最右側配置</value>
     </data>
+    <data name="InstancePresetTaskCountFormat" xml:space="preserve">
+        <value>{0} 個任務</value>
+    </data>
     <data name="InstanceCannotCloseLast" xml:space="preserve">
         <value>無法關閉最後一個實例</value>
     </data>
@@ -1930,6 +1957,30 @@
     </data>
     <data name="MonitorSortByCreatedTime" xml:space="preserve">
         <value>按建立時間</value>
+    </data>
+    <data name="MonitorForceRefresh" xml:space="preserve">
+        <value>強制刷新</value>
+    </data>
+    <data name="MonitorFullScreen" xml:space="preserve">
+        <value>全螢幕顯示</value>
+    </data>
+    <data name="MonitorCopyScreenshot" xml:space="preserve">
+        <value>複製截圖</value>
+    </data>
+    <data name="MonitorDisconnect" xml:space="preserve">
+        <value>斷開連接</value>
+    </data>
+    <data name="MonitorTryConnect" xml:space="preserve">
+        <value>嘗試連接</value>
+    </data>
+    <data name="MonitorLiveBadge" xml:space="preserve">
+        <value>LIVE</value>
+    </data>
+    <data name="ZoomOut" xml:space="preserve">
+        <value>縮小</value>
+    </data>
+    <data name="ZoomIn" xml:space="preserve">
+        <value>放大</value>
     </data>
     <data name="TimerStopConnectedProcess" xml:space="preserve">
         <value>關閉連接的進程</value>

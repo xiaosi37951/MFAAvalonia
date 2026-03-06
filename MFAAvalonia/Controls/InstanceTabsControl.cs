@@ -123,6 +123,8 @@ public class InstanceTabsControl : TabControl
         set => SetAndRaise(CloseItemCommandProperty, ref _closeItemCommand, value);
     }
 
+    public Button? OverflowButton => _overflowButton;
+
     protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey) =>
         new DragTabItem();
 
@@ -171,8 +173,35 @@ public class InstanceTabsControl : TabControl
     {
         if (!_clipDirty) return;
         _clipDirty = false;
+        UpdateTabSeparatorStates();
         UpdateTabBarBackgroundClip();
         UpdateNonSelectedTabClips();
+    }
+
+    /// <summary>
+    /// 显式控制每个标签右侧分隔线显隐：
+    /// - 当前标签被 hover/selected 时隐藏自己的右分隔线
+    /// - 当前标签右侧紧邻标签被 hover/selected 时，也隐藏当前标签右分隔线（即隐藏右侧标签的左分隔线）
+    /// </summary>
+    private void UpdateTabSeparatorStates()
+    {
+        var visibleTabs = DragTabItems().ToList();
+        if (visibleTabs.Count == 0)
+            return;
+
+        for (var i = 0; i < visibleTabs.Count; i++)
+        {
+            var current = visibleTabs[i];
+            var hideCurrent = current.IsSelected || ReferenceEquals(current, _hoveredTab);
+
+            if (!hideCurrent && i + 1 < visibleTabs.Count)
+            {
+                var next = visibleTabs[i + 1];
+                hideCurrent = next.IsSelected || ReferenceEquals(next, _hoveredTab);
+            }
+
+            current.SetHideRightSeparator(hideCurrent);
+        }
     }
 
     private void AttachClipBoundsSource(Border source)

@@ -3,6 +3,7 @@
     x:Class="MFAAvalonia.App"
     xmlns="https://github.com/avaloniaui"
     xmlns:sukiUi="clr-namespace:SukiUI;assembly=SukiUI"
+    xmlns:fluentIcons="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:styling="clr-namespace:FluentAvalonia.Styling;assembly=FluentAvalonia">
 
@@ -88,6 +89,19 @@
                     </Grid>
                 </ControlTemplate>
             </Setter>
+        </Style>
+
+        <Style Selector="MenuItem.DangerContextDelete">
+            <Setter Property="Foreground" Value="{DynamicResource SukiDangerColor}" />
+        </Style>
+        <Style Selector="MenuItem.DangerContextDelete:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource SukiDangerColor}" />
+        </Style>
+        <Style Selector="MenuItem.DangerContextDelete:pressed">
+            <Setter Property="Foreground" Value="{DynamicResource SukiDangerColor}" />
+        </Style>
+        <Style Selector="MenuItem.DangerContextDelete fluentIcons|FluentIcon">
+            <Setter Property="Foreground" Value="{DynamicResource SukiDangerColor}" />
         </Style>
 
     </Application.Styles>

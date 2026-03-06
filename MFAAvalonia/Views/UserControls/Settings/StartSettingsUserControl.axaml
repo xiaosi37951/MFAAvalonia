@@ -113,8 +113,8 @@
                         <Button FlowDirection="RightToLeft"
                                 BorderBrush="Transparent"
                                 BorderThickness="0"
-                                IsVisible="{calcBinding:Binding 'CurrentController == maa:MaaControllerTypes.Adb',
-                                            Source={x:Static helper:Instances.InstanceTabBarViewModel}, Path=ActiveTab.TaskQueueViewModel}"
+                                IsVisible="{calcBinding:Binding 'ActiveTab.TaskQueueViewModel.CurrentController == maa:MaaControllerTypes.Adb',
+                                            Source={x:Static helper:Instances.InstanceTabBarViewModel}}"
                                 Command="{Binding QuickSettingsCommand}"
                                 Height="40"
                                 HorizontalAlignment="Center"

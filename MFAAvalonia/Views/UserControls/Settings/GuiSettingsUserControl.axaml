@@ -22,8 +22,18 @@
     xmlns:fluent1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent">
     <UserControl.Resources>
         <ContextMenu x:Key="ThemeColorContextMenu">
+            <Separator />
             <MenuItem Click="Delete"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
+                      Classes="DangerContextDelete"
+                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}">
+                <MenuItem.Icon>
+                    <fluent1:FluentIcon
+                        Foreground="{DynamicResource SukiDangerColor}"
+                        Icon="Delete"
+                        IconSize="Size16"
+                        IconVariant="Regular" />
+                </MenuItem.Icon>
+            </MenuItem>
         </ContextMenu>
     </UserControl.Resources>
     <StackPanel>

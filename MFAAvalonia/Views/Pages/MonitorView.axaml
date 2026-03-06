@@ -11,18 +11,10 @@
              xmlns:avalonia="clr-namespace:FluentIcons.Avalonia;assembly=FluentIcons.Avalonia"
              xmlns:fluent1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Name="RootMonitorView"
              x:Class="MFAAvalonia.Views.Pages.MonitorView"
              x:DataType="pages:MonitorViewModel">
-    <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,5">
-             <ComboBox SelectedIndex="{Binding SortIndex}"
-                      MinWidth="120">
-                <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortDefault}}" />
-                <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortByStatus}}" />
-                <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortByName}}" />
-                <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortByCreatedTime}}" />
-            </ComboBox>
-        </StackPanel>
+    <Grid>
         <ScrollViewer>
         <ItemsControl ItemsSource="{Binding Items}">
             <ItemsControl.ItemsPanel>
@@ -32,29 +24,81 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <suki:GlassCard Margin="10" Width="360" Height="240" IsInteractive="True"
+                    <suki:GlassCard Margin="10"
+                                    Width="{Binding CardWidth}"
+                                    Height="{Binding CardHeight}"
+                                    IsInteractive="True"
+                                    ClipToBounds="True"
                                     PointerPressed="OnCardPointerPressed">
                         <suki:GlassCard.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.StartTask}}"
                                           Command="{Binding StartTaskCommand}"
-                                          IsVisible="{calcBinding:Binding 'IsConnected and !IsRunning'}" />
+                                          IsVisible="{calcBinding:Binding 'IsConnected and !IsRunning'}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="Play" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
                                 <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.StopTask}}"
                                           Command="{Binding StopTaskCommand}"
-                                          IsVisible="{calcBinding:Binding 'IsConnected and IsRunning'}" />
-                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.Reconnect}}"
+                                          IsVisible="{calcBinding:Binding 'IsConnected and IsRunning'}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="Dismiss" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.MonitorForceRefresh}}"
                                           Command="{Binding ConnectCommand}"
-                                          IsVisible="{calcBinding:Binding '!IsConnected'}" />
+                                          IsEnabled="{Binding IsConnected}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="ArrowClockwise" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
                                 <Separator />
-                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.TaskRename}}"
-                                          Command="{Binding RenameCommand}" />
-                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.ButtonClose}}"
-                                          Command="{Binding DeleteCommand}" />
+                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.MonitorFullScreen}}"
+                                          Command="{Binding FullScreenCommand}"
+                                          IsEnabled="{Binding HasImage}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="ArrowExpand" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.SaveScreenshot}}"
+                                          Command="{Binding SaveScreenshotCommand}"
+                                          IsEnabled="{Binding HasImage}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="Save" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.MonitorCopyScreenshot}}"
+                                          Command="{Binding CopyScreenshotCommand}"
+                                          IsEnabled="{Binding HasImage}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.MonitorDisconnect}}"
+                                          Command="{Binding DisconnectCommand}"
+                                          IsVisible="{Binding IsConnected}">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="PlugDisconnected" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.MonitorTryConnect}}"
+                                          Command="{Binding ConnectCommand}"
+                                          IsVisible="{Binding !IsConnected}"
+                                          IsEnabled="True">
+                                    <MenuItem.Icon>
+                                        <fluent1:FluentIcon Icon="PlugConnected" IconSize="Size16" IconVariant="Regular" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
                             </ContextMenu>
                         </suki:GlassCard.ContextMenu>
                         <Grid RowDefinitions="*,Auto">
                             <!-- Image Area -->
-                            <Image Grid.Row="0" Source="{Binding Image}" Stretch="Uniform" IsVisible="{Binding HasImage}"/>
+                            <Border Grid.Row="0" ClipToBounds="True">
+                                <Image Source="{Binding Image}" Stretch="Uniform" IsVisible="{Binding HasImage}"/>
+                            </Border>
                             
                             <!-- Placeholder -->
                             <Grid Grid.Row="0" IsVisible="{Binding !HasImage}" VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -66,7 +110,10 @@
                                     Background="{DynamicResource SukiPrimaryColor}" CornerRadius="4" Padding="6,2" IsVisible="{Binding IsRunning}">
                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                     <Ellipse Width="6" Height="6" Fill="White"/>
-                                    <TextBlock Text="LIVE" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                    <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.MonitorLiveBadge}}"
+                                               Foreground="White"
+                                               FontWeight="Bold"
+                                               FontSize="12"/>
                                 </StackPanel>
                             </Border>
 
@@ -86,5 +133,42 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
         </ScrollViewer>
-    </DockPanel>
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,12"
+                ZIndex="10"
+                Background="{DynamicResource SukiCardBackground}"
+                CornerRadius="12"
+                Opacity="0.95"
+                BoxShadow="0 3 10 0 #26000000"
+                Padding="10,6">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <fluent1:FluentIcon Icon="ArrowSort" Width="16" Height="16" />
+                <ComboBox SelectedIndex="{Binding SortIndex}"
+                          MinWidth="150"
+                          Height="30">
+                    <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortDefault}}" />
+                    <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortByStatus}}" />
+                    <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortByName}}" />
+                    <ComboBoxItem Content="{markup:I18n {x:Static helper:LangKeys.MonitorSortByCreatedTime}}" />
+                </ComboBox>
+                <Border Width="1" Height="18" Background="{DynamicResource SukiBorderBrush}" Margin="2,0" />
+                <Button Command="{Binding ZoomOutCommand}"
+                        Classes="WindowControlsButton"
+                        Width="28"
+                        Height="28"
+                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ZoomOut}}">
+                    <fluent1:FluentIcon Icon="ZoomOut" Width="15" Height="15" />
+                </Button>
+                <TextBlock Text="{Binding CardScaleText}" Width="52" TextAlignment="Center" VerticalAlignment="Center" />
+                <Button Command="{Binding ZoomInCommand}"
+                        Classes="WindowControlsButton"
+                        Width="28"
+                        Height="28"
+                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ZoomIn}}">
+                    <fluent1:FluentIcon Icon="ZoomIn" Width="15" Height="15" />
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

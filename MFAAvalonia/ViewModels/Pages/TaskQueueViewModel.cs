@@ -378,7 +378,7 @@ public partial class TaskQueueViewModel : ViewModelBase
 
         if (CurrentResources.Count == 0 || string.IsNullOrWhiteSpace(CurrentResource) || CurrentResources.All(r => r.Name != CurrentResource))
         {
-            ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), "ResourceNotSelected".ToLocalization());
+            ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), LangKeys.ResourceNotSelected.ToLocalization());
             LoggerHelper.Warning(LangKeys.CannotStart.ToLocalization());
             return;
         }
@@ -391,7 +391,7 @@ public partial class TaskQueueViewModel : ViewModelBase
         {
             if (CurrentController != MaaControllerTypes.PlayCover && CurrentDevice == null)
             {
-                ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), "DeviceNotSelected".ToLocalization());
+                ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), LangKeys.DeviceNotSelected.ToLocalization());
                 LoggerHelper.Warning(LangKeys.CannotStart.ToLocalization());
                 return;
             }
@@ -973,13 +973,13 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         var deviceInfo = CurrentDevice as AdbDeviceInfo;
 
-        Instances.DialogManager.CreateDialog().WithTitle("AdbEditor").WithViewModel(dialog => new AdbEditorDialogViewModel(deviceInfo, dialog)).Dismiss().ByClickingBackground().TryShow();
+        Instances.DialogManager.CreateDialog().WithTitle(LangKeys.AdbEditor.ToLocalization()).WithViewModel(dialog => new AdbEditorDialogViewModel(deviceInfo, dialog)).Dismiss().ByClickingBackground().TryShow();
     }
 
     [RelayCommand]
     private void EditPlayCover()
     {
-        Instances.DialogManager.CreateDialog().WithTitle("PlayCoverEditor")
+        Instances.DialogManager.CreateDialog().WithTitle(LangKeys.PlayCoverEditor.ToLocalization())
             .WithViewModel(dialog => new PlayCoverEditorDialogViewModel(Processor.Config.PlayCover, dialog))
             .Dismiss().ByClickingBackground().TryShow();
     }
@@ -991,14 +991,14 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         if (CurrentResources.Count == 0 || string.IsNullOrWhiteSpace(CurrentResource) || CurrentResources.All(r => r.Name != CurrentResource))
         {
-            ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), "ResourceNotSelected".ToLocalization());
+            ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), LangKeys.ResourceNotSelected.ToLocalization());
             LoggerHelper.Warning(LangKeys.CannotStart.ToLocalization());
             return;
         }
 
         if (CurrentController != MaaControllerTypes.PlayCover && CurrentDevice == null)
         {
-            ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), "DeviceNotSelected".ToLocalization());
+            ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), LangKeys.DeviceNotSelected.ToLocalization());
             LoggerHelper.Warning(LangKeys.CannotStart.ToLocalization());
             return;
         }
@@ -1037,7 +1037,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         if (Processor.IsConnecting)
         {
-            ToastHelper.Info(LangKeys.Tip.ToLocalization(), "正在连接中，请稍候...");
+            ToastHelper.Info(LangKeys.Tip.ToLocalization(), LangKeys.ConnectingInProgress.ToLocalization());
             return;
         }
 
@@ -2108,10 +2108,10 @@ public partial class TaskQueueViewModel : ViewModelBase
                         var screencapType = Processor.ScreenshotType();
                         var controllerType = CurrentController;
                         var reason = controllerType == MaaControllerTypes.Adb
-                            ? "可能原因: 模拟器窗口最小化/屏幕关闭、截图方式不兼容、设备未完全启动"
-                            : "可能原因: 目标窗口最小化/隐藏/被遮挡、截图方式不兼容";
+                            ? LangKeys.LiveViewNoImageReasonAdb.ToLocalization()
+                            : LangKeys.LiveViewNoImageReasonWindow.ToLocalization();
                         LoggerHelper.Warning($"[LiveView] 已连接但获取画面为空 (截图方式: {screencapType}, 控制器: {controllerType}). {reason}");
-                        AddLog($"warn: 实时画面已连接但无法获取画面 ({screencapType}), {reason}", (IBrush?)null);
+                        AddLog($"warn: {LangKeys.LiveViewNoImageWarning.ToLocalizationFormatted(false, screencapType, reason)}", (IBrush?)null);
                     }
                     return;
                 }

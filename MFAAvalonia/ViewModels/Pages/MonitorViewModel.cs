@@ -11,13 +11,32 @@ namespace MFAAvalonia.ViewModels.Pages;
 
 public partial class MonitorViewModel : ViewModelBase, IDisposable
 {
+    private const double BaseCardWidth = 360;
+    private const double BaseCardHeight = 240;
+    private const double MinCardScale = 0.6;
+    private const double MaxCardScale = 1.8;
+    private const double CardScaleStep = 0.1;
+
     public ObservableCollection<MonitorItemViewModel> Items { get; } = new();
     private readonly DispatcherTimer _timer;
 
     [ObservableProperty]
     private int _sortIndex;
 
+    [ObservableProperty]
+    private double _cardScale = 1.0;
+
+    public double CardWidth => BaseCardWidth * CardScale;
+    public double CardHeight => BaseCardHeight * CardScale;
+    public string CardScaleText => $"{(int)Math.Round(CardScale * 100)}%";
+
     partial void OnSortIndexChanged(int value) => ApplySort();
+    partial void OnCardScaleChanged(double value)
+    {
+        OnPropertyChanged(nameof(CardWidth));
+        OnPropertyChanged(nameof(CardHeight));
+        OnPropertyChanged(nameof(CardScaleText));
+    }
 
     public MonitorViewModel()
     {
@@ -55,7 +74,7 @@ public partial class MonitorViewModel : ViewModelBase, IDisposable
             {
                 if (!Items.Any(i => i.Processor == p))
                 {
-                    Items.Add(new MonitorItemViewModel(p));
+                    Items.Add(new MonitorItemViewModel(p, this));
                 }
             }
 
@@ -92,6 +111,20 @@ public partial class MonitorViewModel : ViewModelBase, IDisposable
     {
         foreach(var item in Items)
             item.UpdateInfo();
+    }
+
+    [RelayCommand]
+    private void ZoomIn()
+    {
+        var next = Math.Round(CardScale + CardScaleStep, 2);
+        CardScale = Math.Clamp(next, MinCardScale, MaxCardScale);
+    }
+
+    [RelayCommand]
+    private void ZoomOut()
+    {
+        var next = Math.Round(CardScale - CardScaleStep, 2);
+        CardScale = Math.Clamp(next, MinCardScale, MaxCardScale);
     }
 
     public void Dispose()

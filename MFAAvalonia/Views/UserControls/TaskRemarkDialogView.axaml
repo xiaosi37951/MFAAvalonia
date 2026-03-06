@@ -1,8 +1,8 @@
 <UserControl
-    MinWidth="340"
-    MinHeight="220"
-    d:DesignHeight="220"
-    d:DesignWidth="420"
+    MinWidth="380"
+    MinHeight="260"
+    d:DesignHeight="260"
+    d:DesignWidth="500"
     mc:Ignorable="d"
     x:Class="MFAAvalonia.Views.UserControls.TaskRemarkDialogView"
     x:DataType="usersControls:TaskRemarkDialogViewModel"
@@ -13,40 +13,76 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:usersControls="clr-namespace:MFAAvalonia.ViewModels.UsersControls"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StackPanel Margin="15,10,15,0" Orientation="Vertical" Spacing="8">
-        <TextBlock
-            FontSize="18"
-            FontWeight="DemiBold"
-            Text="{markup:I18n {x:Static helper:LangKeys.TaskRemarkTitle}}" />
+    <UserControl.Styles>
+        <Style Selector="TextBlock.remark-title">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+        </Style>
 
-        <TextBlock
-            FontSize="12"
-            FontWeight="DemiBold"
-            Margin="0,6,0,0"
-            Text="{markup:I18n {x:Static helper:LangKeys.TaskRemark}}" />
-        <TextBox
-            Text="{Binding Remark}"
-            Watermark="{markup:I18n {x:Static helper:LangKeys.TaskRemarkPlaceholder}}" />
+        <Style Selector="TextBlock.remark-caption">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiMuteText}" />
+        </Style>
+
+        <Style Selector="TextBlock.remark-label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="DemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+        </Style>
+
+        <Style Selector="TextBox.remark-input">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="BorderThickness" Value="1.2" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SmallCornerRadius}" />
+        </Style>
+
+        <Style Selector="Button.remark-action">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="MinWidth" Value="108" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Margin="14,8,14,8" RowDefinitions="Auto,Auto,Auto" RowSpacing="0">
+        <StackPanel Grid.Row="0" Spacing="6">
+            <TextBlock
+                Classes="remark-title"
+                Text="{markup:I18n {x:Static helper:LangKeys.TaskRemarkTitle}}" />
+            <TextBlock
+                Classes="remark-caption"
+                Text="{markup:I18n {x:Static helper:LangKeys.TaskRemarkPlaceholder}}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,16,0,0" Spacing="8">
+            <TextBlock
+                Classes="remark-label"
+                Text="{markup:I18n {x:Static helper:LangKeys.TaskRemark}}" />
+            <TextBox
+                Classes="remark-input"
+                Text="{Binding Remark}"
+                Watermark="{markup:I18n {x:Static helper:LangKeys.TaskRemarkPlaceholder}}" />
+        </StackPanel>
 
         <StackPanel
-            HorizontalAlignment="Center"
-            Margin="0,25,0,5"
+            Grid.Row="2"
+            HorizontalAlignment="Right"
+            Margin="0,22,0,0"
             Orientation="Horizontal"
-            Spacing="20">
+            Spacing="10">
             <Button
-                BorderThickness="0"
-                Classes="Flat"
-                Command="{Binding SaveCommand}"
-                Content="{markup:I18n {x:Static helper:LangKeys.ButtonSave}}"
-                FontSize="11"
-                MinHeight="30"
-                Width="90" />
-            <Button
+                Classes="Outlined remark-action"
                 Command="{Binding CancelCommand}"
                 Content="{markup:I18n {x:Static helper:LangKeys.ButtonCancel}}"
-                FontSize="11"
-                MinHeight="30"
-                Width="90" />
+                IsCancel="True" />
+            <Button
+                Classes="Flat remark-action"
+                BorderThickness="0"
+                Command="{Binding SaveCommand}"
+                Content="{markup:I18n {x:Static helper:LangKeys.ButtonSave}}"
+                IsDefault="True" />
         </StackPanel>
-    </StackPanel>
+    </Grid>
 </UserControl>

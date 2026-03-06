@@ -29,6 +29,7 @@ using FontWeight = Avalonia.Media.FontWeight;
 using HorizontalAlignment = Avalonia.Layout.HorizontalAlignment;
 using VerticalAlignment = Avalonia.Layout.VerticalAlignment;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactivity;
 using Lang.Avalonia.MarkupExtensions;
 using MaaFramework.Binding;
@@ -44,6 +45,7 @@ public partial class TaskQueueView : UserControl
 {
     // 动画持续时间
     private static readonly TimeSpan AnimationDuration = TimeSpan.FromMilliseconds(250);
+    private DragItemViewModel? _lastTaskMenuItem;
 
     private const double TopToolbarCompactWidthThreshold = 980;
     private bool _isTopToolbarCompact;
@@ -368,6 +370,8 @@ public partial class TaskQueueView : UserControl
         var menuItem = sender as MenuItem;
         if (menuItem?.DataContext is DragItemViewModel taskItemViewModel && DataContext is TaskQueueViewModel vm)
         {
+            if (taskItemViewModel.IsResourceOptionItem)
+                return;
             vm.Processor.Start([taskItemViewModel]);
         }
     }
@@ -378,6 +382,8 @@ public partial class TaskQueueView : UserControl
         // 空值保护 + 类型校验
         if (menuItem?.DataContext is DragItemViewModel currentTaskViewModel && DataContext is TaskQueueViewModel vm)
         {
+            if (currentTaskViewModel.IsResourceOptionItem)
+                return;
             // 避免任务列表为 null 的异常
             if (vm.TaskItemViewModels.Count == 0)
                 return;
@@ -400,6 +406,83 @@ public partial class TaskQueueView : UserControl
                 vm.Processor.Start(tasksToRun);
             }
         }
+    }
+
+    private void TaskMenu_OnOpening(object? sender, CancelEventArgs e)
+    {
+        if (sender is not ContextMenu menu)
+            return;
+
+        // ContextMenu 作为 StaticResource 会复用，DataContext 可能滞后。
+        // 从 PlacementTarget 向上找真实的 DragItemViewModel。
+        var currentItem = _lastTaskMenuItem
+                          ?? ResolveTaskItemFromPlacementTarget(menu.PlacementTarget)
+                          ?? menu.DataContext as DragItemViewModel;
+        menu.DataContext = currentItem;
+        ApplyTaskMenuEnabledStates(menu, currentItem);
+    }
+
+    private static DragItemViewModel? ResolveTaskItemFromPlacementTarget(Control? placementTarget)
+    {
+        if (placementTarget?.DataContext is DragItemViewModel vm)
+            return vm;
+
+        var current = placementTarget as Visual;
+        while (current != null)
+        {
+            if (current is StyledElement { DataContext: DragItemViewModel itemVm })
+                return itemVm;
+
+            current = current.GetVisualParent();
+        }
+
+        return null;
+    }
+
+    private void TaskItem_OnContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is not Control control)
+            return;
+
+        if (control.ContextMenu is not ContextMenu menu)
+            return;
+
+        var currentItem = control.DataContext as DragItemViewModel;
+        _lastTaskMenuItem = currentItem;
+        menu.DataContext = currentItem;
+        ApplyTaskMenuEnabledStates(menu, currentItem);
+    }
+
+    private void TaskItem_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Control control)
+            return;
+
+        var point = e.GetCurrentPoint(control);
+        if (!point.Properties.IsRightButtonPressed)
+            return;
+
+        _lastTaskMenuItem = control.DataContext as DragItemViewModel;
+    }
+
+    private static void ApplyTaskMenuEnabledStates(ContextMenu menu, DragItemViewModel? currentItem)
+    {
+        var isResourceOptionItem = currentItem?.IsResourceOptionItem == true;
+        var canRunNow = !isResourceOptionItem && Instances.RootViewModel.Idle;
+        var canEdit = !isResourceOptionItem;
+
+        // 仅统计 MenuItem（不包含 Separator），顺序固定：
+        // 0 单独运行, 1 运行当前及后续勾选, 2 复制, 3 粘贴, 4 备注, 5 删除
+        var items = menu.Items?.OfType<MenuItem>().ToList();
+        if (items is not { Count: >= 6 })
+            return;
+
+        items[0].IsEnabled = canRunNow;
+        items[1].IsEnabled = canRunNow;
+        items[2].IsEnabled = canEdit;
+        items[3].IsEnabled = canEdit;
+        items[4].IsEnabled = canEdit;
+        items[5].IsEnabled = canEdit;
     }
 
     #endregion

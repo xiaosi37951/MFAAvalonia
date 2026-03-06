@@ -12,6 +12,7 @@ namespace MFAAvalonia.Controls;
 
 public class DragTabItem : TabItem
 {
+    private const string HideRightSeparatorPseudoClass = ":hide-right-separator";
     private LeftPressedThumb _thumb = null!;
     private Path? _tabShapePath;
     private Button? _closeButton;
@@ -248,6 +249,11 @@ public class DragTabItem : TabItem
                 ZIndex = ZIndexSelected;
             }
         }
+    }
+
+    internal void SetHideRightSeparator(bool hide)
+    {
+        PseudoClasses.Set(HideRightSeparatorPseudoClass, hide);
     }
 
     private void ThumbOnDragStarted(object? sender, VectorEventArgs args)

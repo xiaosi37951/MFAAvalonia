@@ -1140,6 +1140,8 @@ public partial class MaaInterface
 
         [ObservableProperty] [JsonIgnore] private bool _hasIcon;
 
+        [ObservableProperty] [JsonIgnore] private string _taskCountText = string.Empty;
+
         public void InitializeDisplayName()
         {
             UpdateDisplayName();
@@ -1151,6 +1153,7 @@ public partial class MaaInterface
         private void UpdateDisplayName()
         {
             DisplayName = LanguageHelper.GetLocalizedDisplayName(Label, Name ?? string.Empty);
+            TaskCountText = LangKeys.InstancePresetTaskCountFormat.ToLocalizationFormatted(false, (Task?.Count ?? 0).ToString());
             try
             {
                 DisplayDescription = LanguageHelper.GetLocalizedString(Description.ResolveContentAsync().Result);

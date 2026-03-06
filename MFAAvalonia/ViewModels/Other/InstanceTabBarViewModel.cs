@@ -26,10 +26,12 @@ public partial class InstanceTabBarViewModel : ViewModelBase
     [ObservableProperty] private bool _hasInstancePresets;
     [ObservableProperty] private List<MaaInterface.MaaInterfacePreset>? _instancePresets;
     [ObservableProperty] private bool _isAddMenuOpen;
+    [ObservableProperty] private string _presetSearchText = string.Empty;
 
     [ObservableProperty] private string _searchText = string.Empty;
 
     public ObservableCollection<InstanceTabViewModel> FilteredTabs { get; } = new();
+    public ObservableCollection<MaaInterface.MaaInterfacePreset> FilteredInstancePresets { get; } = new();
 
     partial void OnIsDropdownOpenChanged(bool value)
     {
@@ -45,6 +47,20 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         RefreshFilteredTabs();
     }
 
+    partial void OnPresetSearchTextChanged(string value)
+    {
+        RefreshFilteredInstancePresets();
+    }
+
+    partial void OnIsAddMenuOpenChanged(bool value)
+    {
+        if (value)
+        {
+            PresetSearchText = string.Empty;
+            RefreshFilteredInstancePresets();
+        }
+    }
+
     private void RefreshFilteredTabs()
     {
         FilteredTabs.Clear();
@@ -54,6 +70,29 @@ public partial class InstanceTabBarViewModel : ViewModelBase
             if (string.IsNullOrEmpty(query) || tab.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
             {
                 FilteredTabs.Add(tab);
+            }
+        }
+    }
+
+    private void RefreshFilteredInstancePresets()
+    {
+        FilteredInstancePresets.Clear();
+        var presets = InstancePresets;
+        if (presets == null || presets.Count == 0)
+        {
+            return;
+        }
+
+        var query = PresetSearchText?.Trim() ?? string.Empty;
+        foreach (var preset in presets)
+        {
+            if (string.IsNullOrEmpty(query)
+                || (!string.IsNullOrWhiteSpace(preset.DisplayName)
+                    && preset.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrWhiteSpace(preset.DisplayDescription)
+                    && preset.DisplayDescription.Contains(query, StringComparison.OrdinalIgnoreCase)))
+            {
+                FilteredInstancePresets.Add(preset);
             }
         }
     }
@@ -254,6 +293,7 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         var presets = MaaProcessor.Interface?.Preset;
         HasInstancePresets = presets is { Count: > 0 };
         InstancePresets = presets;
+        RefreshFilteredInstancePresets();
     }
 
     [RelayCommand]

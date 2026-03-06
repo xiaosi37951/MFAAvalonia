@@ -56,6 +56,7 @@ public static class LangKeys
 	public static readonly string CannotStart = "CannotStart";
 	public static readonly string CaptureModeOption = "CaptureModeOption";
 	public static readonly string CheckMFA = "CheckMFA";
+	public static readonly string CheckUpdate = "CheckUpdate";
 	public static readonly string CheckResource = "CheckResource";
 	public static readonly string ClipboardDataError = "ClipboardDataError";
 	public static readonly string CloseEmulator = "CloseEmulator";
@@ -250,9 +251,11 @@ public static class LangKeys
 	public static readonly string PasteAbove = "PasteAbove";
 	public static readonly string PasteBelow = "PasteBelow";
 	public static readonly string PerformanceSettings = "PerformanceSettings";
+	public static readonly string PerformanceBenchmark = "PerformanceBenchmark";
 	public static readonly string PipelineLoadError = "PipelineLoadError";
 	public static readonly string Postscript = "Postscript";
 	public static readonly string Prescript = "Prescript";
+	public static readonly string PlayCoverEditor = "PlayCoverEditor";
 	public static readonly string ProjectDescription = "ProjectDescription";
 	public static readonly string ProjectLink = "ProjectLink";
 	public static readonly string PurchaseLink = "PurchaseLink";
@@ -442,6 +445,7 @@ public static class LangKeys
 	public static readonly string ScreenshotFailed = "ScreenshotFailed";
 	public static readonly string DisplayAnnouncement = "DisplayAnnouncement";
 	public static readonly string ScreenshotEmpty = "ScreenshotEmpty";
+	public static readonly string ScreenshotPlaceholder = "ScreenshotPlaceholder";
 	public static readonly string SaveScreenshot = "SaveScreenshot";
 	public static readonly string AnnouncementEmpty = "AnnouncementEmpty";
 	public static readonly string Execute = "Execute";
@@ -487,6 +491,7 @@ public static class LangKeys
 	public static readonly string BackgroundImageOpacityTitle = "BackgroundImageOpacityTitle";
 	public static readonly string BackgroundImageOpacityDescription = "BackgroundImageOpacityDescription";
 	public static readonly string TriggerDate = "TriggerDate";
+	public static readonly string ConnectingInProgress = "ConnectingInProgress";
 	public static readonly string SchedulePickerTip = "SchedulePickerTip";
 	public static readonly string ScheduleMode = "ScheduleMode";
 	public static readonly string ScheduleDaily = "ScheduleDaily";
@@ -517,6 +522,9 @@ public static class LangKeys
 	public static readonly string ResourcePresetConfig = "ResourcePresetConfig";
 	public static readonly string UseFingerprintMatching = "UseFingerprintMatching";
 	public static readonly string LiveView = "LiveView";
+	public static readonly string LiveViewNoImageReasonAdb = "LiveViewNoImageReasonAdb";
+	public static readonly string LiveViewNoImageReasonWindow = "LiveViewNoImageReasonWindow";
+	public static readonly string LiveViewNoImageWarning = "LiveViewNoImageWarning";
 	public static readonly string Running = "Running";
 	public static readonly string CurrentTask = "CurrentTask";
 	public static readonly string LiveViewRefreshRate = "LiveViewRefreshRate";
@@ -627,6 +635,7 @@ public static class LangKeys
 	public static readonly string InstanceSelectTooltip = "InstanceSelectTooltip";
 	public static readonly string InstanceAddTooltip = "InstanceAddTooltip";
 	public static readonly string InstanceAddFollowLast = "InstanceAddFollowLast";
+	public static readonly string InstancePresetTaskCountFormat = "InstancePresetTaskCountFormat";
 	public static readonly string InstanceCannotCloseLast = "InstanceCannotCloseLast";
 	public static readonly string InstanceRunningCloseConfirm = "InstanceRunningCloseConfirm";
 	public static readonly string InstanceCloseTitle = "InstanceCloseTitle";
@@ -636,6 +645,14 @@ public static class LangKeys
 	public static readonly string MonitorSortByStatus = "MonitorSortByStatus";
 	public static readonly string MonitorSortByName = "MonitorSortByName";
 	public static readonly string MonitorSortByCreatedTime = "MonitorSortByCreatedTime";
+	public static readonly string MonitorForceRefresh = "MonitorForceRefresh";
+	public static readonly string MonitorFullScreen = "MonitorFullScreen";
+	public static readonly string MonitorCopyScreenshot = "MonitorCopyScreenshot";
+	public static readonly string MonitorDisconnect = "MonitorDisconnect";
+	public static readonly string MonitorTryConnect = "MonitorTryConnect";
+	public static readonly string MonitorLiveBadge = "MonitorLiveBadge";
+	public static readonly string ZoomOut = "ZoomOut";
+	public static readonly string ZoomIn = "ZoomIn";
 	public static readonly string AddTimer = "AddTimer";
 	public static readonly string RemoveTimer = "RemoveTimer";
 	public static readonly string TimerStopConnectedProcess = "TimerStopConnectedProcess";
