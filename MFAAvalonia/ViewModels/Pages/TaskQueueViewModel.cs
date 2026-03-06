@@ -539,17 +539,15 @@ public partial class TaskQueueViewModel : ViewModelBase
                 && ViewModels.UsersControls.Settings.AddTaskDialogViewModel.SpecialActionNames.Contains(t.InterfaceItem.Entry!))
             .ToList();
 
-        // 使用 TasksSource 作为模板，保证从 interface 原始定义克隆任务
+        // 使用 TasksSource 作为模板，保证从 interface 原始定义克隆任务。
+        // 这里按名称保留模板源，但应用时必须按预设项出现顺序逐个克隆，
+        // 不能再按名称回查，否则同名任务（例如多个“自动出征”）会全部落到第一项上。
         var templateDict = Processor.TasksSource
             .Where(t => !string.IsNullOrEmpty(t.InterfaceItem?.Name))
             .GroupBy(t => t.InterfaceItem!.Name!)
             .ToDictionary(g => g.Key, g => g.First());
 
-        // 记录预设中的任务名顺序
-        var presetTaskNames = preset.Task
-            .Where(t => !string.IsNullOrEmpty(t.Name))
-            .Select(t => t.Name!)
-            .ToList();
+        var presetTaskBindings = new List<(MaaInterface.MaaInterfacePresetTask PresetTask, DragItemViewModel DragItem)>();
 
         // 重新构建 TaskItemViewModels
         TaskItemViewModels.Clear();
@@ -558,26 +556,28 @@ public partial class TaskQueueViewModel : ViewModelBase
         foreach (var item in resourceOptionItems)
             TaskItemViewModels.Add(item);
 
-        // 再按预设顺序添加任务项
-        foreach (var taskName in presetTaskNames)
+        // 再按预设顺序添加任务项，并记录“预设项 -> 新克隆任务项”的一一映射
+        foreach (var presetTask in preset.Task.Where(t => !string.IsNullOrEmpty(t.Name)))
         {
-            if (!templateDict.TryGetValue(taskName, out var templateVm)) continue;
+            if (!templateDict.TryGetValue(presetTask.Name!, out var templateVm)) continue;
 
             var cloned = templateVm.Clone();
             cloned.OwnerViewModel = this;
             TaskItemViewModels.Add(cloned);
+            presetTaskBindings.Add((presetTask, cloned));
         }
 
         // 最后把特殊任务放到列表末尾
         foreach (var special in specialTasks)
             TaskItemViewModels.Add(special);
 
-        foreach (var presetTask in preset.Task)
+        foreach (var (presetTask, dragItem) in presetTaskBindings)
         {
-            if (string.IsNullOrEmpty(presetTask.Name)) continue;
-
-            var dragItem = TaskItemViewModels.FirstOrDefault(t => t.InterfaceItem?.Name == presetTask.Name);
-            if (dragItem == null) continue;
+            if (!string.IsNullOrWhiteSpace(presetTask.Label) && dragItem.InterfaceItem != null)
+            {
+                dragItem.InterfaceItem.Label = presetTask.Label;
+                dragItem.RefreshDisplayName();
+            }
 
             // 设置勾选状态
             if (presetTask.Enabled.HasValue)

@@ -1090,6 +1090,10 @@ public partial class MaaInterface
         [JsonProperty("name")]
         public string? Name { get; set; }
 
+        /// <summary>任务显示名称，用于在应用预设后覆盖任务展示名，支持国际化（以$开头）</summary>
+        [JsonProperty("label")]
+        public string? Label { get; set; }
+
         /// <summary>该任务在预设中是否勾选，默认 true</summary>
         [JsonProperty("enabled")]
         public bool? Enabled { get; set; }
