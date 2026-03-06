@@ -579,8 +579,18 @@
                                   Stretch="Uniform"
                                   Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                         </Button>
-                        <ContentControl
-                            Content="{Binding IsConnected, Converter={StaticResource ConnectedConditionConverter}}" />
+                        <Button Classes="BasicTight TaskQueueBasicTight"
+                                Click="ConnectionStatusButton_OnClick"
+                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                Padding="0"
+                                Width="24"
+                                Height="24"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ConnectionSettings}}">
+                            <ContentControl
+                                Content="{Binding IsConnected, Converter={StaticResource ConnectedConditionConverter}}" />
+                        </Button>
                         <Border x:Name="TaskToggleBorder" Height="30"
                                 CornerRadius="999"
                                 ClipToBounds="True"

@@ -34,8 +34,10 @@ using Avalonia.Xaml.Interactivity;
 using Lang.Avalonia.MarkupExtensions;
 using MaaFramework.Binding;
 using MFAAvalonia.Views.Windows;
+using MFAAvalonia.Views.UserControls.Settings;
 using Newtonsoft.Json.Linq;
 using SukiUI.Dialogs;
+using SukiUI.Controls;
 using SukiUI.Extensions;
 using System.Threading.Tasks;
 
@@ -57,6 +59,34 @@ public partial class TaskQueueView : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         DataContextChanged += OnDataContextChanged;
+    }
+
+    private void ConnectionStatusButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        NavigateToConnectSettings();
+    }
+
+    private void NavigateToConnectSettings()
+    {
+        var topLevel = Instances.TopLevel;
+        if (topLevel == null)
+        {
+            return;
+        }
+
+        var sideMenu = topLevel.GetVisualDescendants().OfType<SukiSideMenu>().FirstOrDefault();
+        var settingsItem = sideMenu?.FooterMenuItems?.OfType<SukiSideMenuItem>().FirstOrDefault();
+        if (settingsItem != null && sideMenu != null)
+        {
+            sideMenu.SelectedItem = settingsItem;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var connectSettings = topLevel.GetVisualDescendants().OfType<ConnectSettingsUserControl>().FirstOrDefault();
+            connectSettings?.BringIntoView();
+            connectSettings?.Focus();
+        }, DispatcherPriority.Loaded);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
