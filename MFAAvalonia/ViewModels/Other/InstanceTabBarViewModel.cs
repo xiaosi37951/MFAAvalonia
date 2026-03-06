@@ -1,9 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
+using MFAAvalonia.ViewModels.UsersControls.Settings;
 using SukiUI.Controls;
 using SukiUI.Dialogs;
 using SukiUI.MessageBox;
@@ -323,7 +325,7 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         if (lastVm != null)
         {
             lastTab!.Processor.InstanceConfiguration.SetValue(
-                MFAAvalonia.Configuration.ConfigurationKeys.TaskItems,
+                ConfigurationKeys.TaskItems,
                 lastVm.TaskItemViewModels.Where(m => !m.IsResourceOptionItem).Select(model => model.InterfaceItem).ToList());
         }
 
@@ -333,6 +335,27 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         {
             newId = MaaProcessorManager.CreateInstanceId();
             lastTab.Processor.InstanceConfiguration.CopyToNewInstance(newId);
+
+            if (preset != null && lastVm != null)
+            {
+                var taskItemsWithoutSpecialTasks = lastVm.TaskItemViewModels
+                    .Where(m => !m.IsResourceOptionItem)
+                    .Where(m => !string.IsNullOrWhiteSpace(m.InterfaceItem?.Entry)
+                        ? !AddTaskDialogViewModel.SpecialActionNames.Contains(m.InterfaceItem!.Entry!)
+                        : true)
+                    .Select(model => model.InterfaceItem)
+                    .ToList();
+
+                var newInstanceConfig = new InstanceConfiguration(newId);
+                newInstanceConfig.SetValue(ConfigurationKeys.TaskItems, taskItemsWithoutSpecialTasks);
+                newInstanceConfig.SetValue(
+                    ConfigurationKeys.CurrentTasks,
+                    taskItemsWithoutSpecialTasks
+                        .Where(task => !string.IsNullOrWhiteSpace(task?.Name) && !string.IsNullOrWhiteSpace(task.Entry))
+                        .Select(task => $"{task!.Name}{TaskLoader.NEW_SEPARATOR}{task.Entry}")
+                        .Distinct()
+                        .ToList());
+            }
         }
 
         var processor = newId != null

@@ -503,9 +503,11 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         {
             MinWidth = 120,
             Margin = new Thickness(0, 2, 0, 2),
+            BorderThickness = new Thickness(1),
             Text = displayValue,
             VerticalAlignment = VerticalAlignment.Center
         };
+        textBox.Bind(TextBox.BorderBrushProperty, new DynamicResourceExtension("SukiControlBorderBrush"));
         
         if (!string.IsNullOrWhiteSpace(input.PatternMsg))
             textBox.Bind(TextBox.WatermarkProperty, new ResourceBinding(input.PatternMsg));
@@ -1087,7 +1089,10 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
         // 验证输入并显示红框
         var validation = interfaceOption.ValidateInput(input.Name ?? string.Empty, text);
-        textBox.BorderBrush = validation.IsValid ? null : Brushes.Red;
+        if (validation.IsValid)
+            textBox.Bind(TextBox.BorderBrushProperty, new DynamicResourceExtension("SukiControlBorderBrush"));
+        else
+            textBox.BorderBrush = Brushes.Red;
 
         if (!silent)
         {

@@ -2545,7 +2545,7 @@ public class MaaProcessor
         {
             tasks ??= new List<DragItemViewModel>();
             _tempTasks = tasks;
-            var taskAndParams = tasks.Select(CreateNodeAndParam).ToList();
+            var taskAndParams = tasks.Select((task, index) => CreateNodeAndParam(task, index + 1)).ToList();
             InitializeConnectionTasksAsync(token);
             AddCoreTasksAsync(taskAndParams, token);
         }
@@ -2594,6 +2594,7 @@ public class MaaProcessor
 
     public class NodeAndParam
     {
+        public int Index { get; set; }
         public string? Name { get; set; }
         public string? Entry { get; set; }
         public int? Count { get; set; }
@@ -2810,7 +2811,7 @@ public class MaaProcessor
         }
     }
 
-    private NodeAndParam CreateNodeAndParam(DragItemViewModel task)
+    private NodeAndParam CreateNodeAndParam(DragItemViewModel task, int index)
     {
         var taskModels = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(JsonConvert.SerializeObject(task.InterfaceItem?.PipelineOverride ?? new Dictionary<string, JToken>(), new JsonSerializerSettings()
         {
@@ -2843,9 +2844,10 @@ public class MaaProcessor
         //
         // var tasks = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(json, settings);
         // tasks = tasks.MergeMaaNodes(taskModels);
-        LoggerHelper.Info(taskParams);
+        LoggerHelper.Info($"[TaskPipelineMerge] Task#{index} Name=[{task.Name ?? task.InterfaceItem?.Name ?? "<Unnamed>"}] Entry=[{task.InterfaceItem?.Entry ?? "<Empty>"}] PipelineList={taskParams}");
         return new NodeAndParam
         {
+            Index = index,
             Name = task.Name,
             Entry = task.InterfaceItem?.Entry,
             Count = task.InterfaceItem?.Repeatable == true ? (task.InterfaceItem?.RepeatCount ?? 1) : 1,

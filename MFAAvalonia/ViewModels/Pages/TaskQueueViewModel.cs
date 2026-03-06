@@ -592,37 +592,10 @@ public partial class TaskQueueViewModel : ViewModelBase
                     var selectOption = dragItem.InterfaceItem.Option.FirstOrDefault(o => o.Name == optionName);
 
                     // 如果不是顶级选项，尝试作为子选项处理：
-                    // 在所有顶级选项的 cases[].option 中查找名称为 optionName 的子选项描述，
-                    // 找到后在对应顶级 selectOption.SubOptions 中创建/获取同名子选项，并应用预设值。
+                    // 递归在 option 树里查找/创建目标子选项，支持多级嵌套子选项。
                     if (selectOption == null)
                     {
-                        if (MaaProcessor.Interface?.Option != null)
-                        {
-                            foreach (var parentSelect in dragItem.InterfaceItem.Option)
-                            {
-                                if (string.IsNullOrEmpty(parentSelect.Name)) continue;
-
-                                if (!MaaProcessor.Interface.Option.TryGetValue(parentSelect.Name, out var parentOptDef) ||
-                                    parentOptDef.Cases == null) continue;
-
-                                var isChild = parentOptDef.Cases.Any(c =>
-                                    c.Option != null && c.Option.Contains(optionName));
-                                if (!isChild) continue;
-
-                                parentSelect.SubOptions ??= new List<MaaInterface.MaaInterfaceSelectOption>();
-                                selectOption = parentSelect.SubOptions.FirstOrDefault(o => o.Name == optionName);
-                                if (selectOption == null)
-                                {
-                                    selectOption = new MaaInterface.MaaInterfaceSelectOption
-                                    {
-                                        Name = optionName
-                                    };
-                                    TaskLoader.SetDefaultOptionValue(MaaProcessor.Interface, selectOption);
-                                    parentSelect.SubOptions.Add(selectOption);
-                                }
-                                break;
-                            }
-                        }
+                        selectOption = FindOrCreateNestedPresetOption(dragItem.InterfaceItem.Option, optionName, presetTask.Name);
                     }
 
                     if (selectOption == null) continue;
@@ -633,9 +606,39 @@ public partial class TaskQueueViewModel : ViewModelBase
                     {
                         // checkbox: string[] → SelectedCases
                         if (optionValue.Type == Newtonsoft.Json.Linq.JTokenType.Array)
+                        {
                             selectOption.SelectedCases = optionValue.ToObject<List<string>>() ?? new List<string>();
+                        }
                         else if (optionValue.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                        {
                             selectOption.SelectedCases = new List<string> { optionValue.Value<string>() ?? string.Empty };
+                        }
+                    }
+                    else if (interfaceOption.IsInput)
+                    {
+                        // input: Dictionary<string, string> → Data
+                        // 单输入项同时支持字符串简写："选项名": "值"
+                        if (optionValue is Newtonsoft.Json.Linq.JObject jObj)
+                        {
+                            selectOption.Data ??= new Dictionary<string, string?>();
+                            foreach (var prop in jObj.Properties())
+                                selectOption.Data[prop.Name] = prop.Value.Value<string>();
+
+                            RefreshPresetOptionRuntimeState(selectOption);
+                        }
+                        else if (interfaceOption.Inputs is { Count: 1 } singleInputs)
+                        {
+                            var inputName = singleInputs[0].Name;
+                            if (!string.IsNullOrWhiteSpace(inputName))
+                            {
+                                selectOption.Data ??= new Dictionary<string, string?>();
+                                var inputValue = optionValue.Type == JTokenType.String
+                                    ? optionValue.Value<string>()
+                                    : optionValue.ToString(Formatting.None);
+                                selectOption.Data[inputName] = inputValue;
+                                RefreshPresetOptionRuntimeState(selectOption);
+                            }
+                        }
                     }
                     else if (optionValue.Type == Newtonsoft.Json.Linq.JTokenType.Object)
                     {
@@ -648,16 +651,7 @@ public partial class TaskQueueViewModel : ViewModelBase
                             selectOption.SelectedCases = fullOption.SelectedCases;
                             selectOption.Data = fullOption.Data;
                             selectOption.SubOptions = fullOption.SubOptions;
-                        }
-                    }
-                    else if (interfaceOption.IsInput)
-                    {
-                        // input: Dictionary<string, string> → Data
-                        if (optionValue is Newtonsoft.Json.Linq.JObject jObj)
-                        {
-                            selectOption.Data ??= new Dictionary<string, string?>();
-                            foreach (var prop in jObj.Properties())
-                                selectOption.Data[prop.Name] = prop.Value.Value<string>();
+                            RefreshPresetOptionRuntimeState(selectOption);
                         }
                     }
                     else
@@ -682,6 +676,130 @@ public partial class TaskQueueViewModel : ViewModelBase
         }
 
         Processor.InstanceConfiguration.SetValue(ConfigurationKeys.TaskItems, TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+    }
+
+    private void RefreshPresetOptionRuntimeState(MaaInterface.MaaInterfaceSelectOption option)
+    {
+        if (string.IsNullOrWhiteSpace(option.Name)) return;
+        if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name, out var interfaceOption) != true) return;
+
+        if (interfaceOption.IsInput && interfaceOption.Inputs != null)
+        {
+            option.Data ??= new Dictionary<string, string?>();
+            foreach (var input in interfaceOption.Inputs)
+            {
+                if (!string.IsNullOrWhiteSpace(input.Name) && !option.Data.ContainsKey(input.Name))
+                    option.Data[input.Name] = input.Default ?? string.Empty;
+            }
+
+            if (interfaceOption.PipelineOverride != null)
+            {
+                option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(
+                    option.Data
+                        .Where(kv => kv.Value != null)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value!));
+            }
+        }
+
+        if (interfaceOption.IsCheckbox)
+            option.SelectedCases ??= new List<string>(interfaceOption.DefaultCases ?? new List<string>());
+
+        if (option.SubOptions == null) return;
+
+        foreach (var subOption in option.SubOptions)
+            RefreshPresetOptionRuntimeState(subOption);
+    }
+
+    private MaaInterface.MaaInterfaceSelectOption? FindOrCreateNestedPresetOption(
+        List<MaaInterface.MaaInterfaceSelectOption>? rootOptions,
+        string targetOptionName,
+        string? taskName)
+    {
+        if (rootOptions == null || string.IsNullOrWhiteSpace(targetOptionName)) return null;
+
+        foreach (var rootOption in rootOptions)
+        {
+            var found = FindOrCreateNestedPresetOptionRecursive(
+                rootOption,
+                targetOptionName,
+                taskName,
+                new HashSet<string>(StringComparer.Ordinal));
+            if (found != null) return found;
+        }
+
+        return null;
+    }
+
+    private MaaInterface.MaaInterfaceSelectOption? FindOrCreateNestedPresetOptionRecursive(
+        MaaInterface.MaaInterfaceSelectOption currentOption,
+        string targetOptionName,
+        string? taskName,
+        HashSet<string> visited)
+    {
+        if (string.IsNullOrWhiteSpace(currentOption.Name)) return null;
+        if (!visited.Add(currentOption.Name)) return null;
+
+        if (string.Equals(currentOption.Name, targetOptionName, StringComparison.Ordinal))
+            return currentOption;
+
+        if (MaaProcessor.Interface?.Option?.TryGetValue(currentOption.Name, out var currentOptionDef) != true ||
+            currentOptionDef.Cases == null)
+            return null;
+
+        foreach (var optionCase in currentOptionDef.Cases)
+        {
+            if (optionCase.Option == null) continue;
+
+            foreach (var childOptionName in optionCase.Option)
+            {
+                if (string.IsNullOrWhiteSpace(childOptionName)) continue;
+
+                if (!string.Equals(childOptionName, targetOptionName, StringComparison.Ordinal) &&
+                    !InterfaceOptionContainsTarget(childOptionName, targetOptionName, new HashSet<string>(StringComparer.Ordinal)))
+                    continue;
+
+                currentOption.SubOptions ??= new List<MaaInterface.MaaInterfaceSelectOption>();
+                var childOption = currentOption.SubOptions.FirstOrDefault(o => o.Name == childOptionName);
+                if (childOption == null)
+                {
+                    childOption = new MaaInterface.MaaInterfaceSelectOption { Name = childOptionName };
+                    TaskLoader.SetDefaultOptionValue(MaaProcessor.Interface, childOption);
+                    currentOption.SubOptions.Add(childOption);
+                }
+
+                if (string.Equals(childOptionName, targetOptionName, StringComparison.Ordinal))
+                    return childOption;
+
+                var found = FindOrCreateNestedPresetOptionRecursive(childOption, targetOptionName, taskName, visited);
+                if (found != null) return found;
+            }
+        }
+
+        return null;
+    }
+
+    private bool InterfaceOptionContainsTarget(string currentOptionName, string targetOptionName, HashSet<string> visited)
+    {
+        if (string.IsNullOrWhiteSpace(currentOptionName)) return false;
+        if (string.Equals(currentOptionName, targetOptionName, StringComparison.Ordinal)) return true;
+        if (!visited.Add(currentOptionName)) return false;
+
+        if (MaaProcessor.Interface?.Option?.TryGetValue(currentOptionName, out var currentOptionDef) != true ||
+            currentOptionDef.Cases == null)
+            return false;
+
+        foreach (var optionCase in currentOptionDef.Cases)
+        {
+            if (optionCase.Option == null) continue;
+
+            foreach (var childOptionName in optionCase.Option)
+            {
+                if (InterfaceOptionContainsTarget(childOptionName, targetOptionName, visited))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     [RelayCommand]
