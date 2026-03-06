@@ -15,7 +15,7 @@
                         Background="{DynamicResource MouseOverRegionBrush}">
 
                     <FlyoutBase.AttachedFlyout>
-                        <Flyout Placement="Bottom" ShowMode="TransientWithDismissOnPointerMoveAway">
+                        <Flyout Placement="Bottom" ShowMode="Standard" VerticalOffset="6">
                             <Flyout.FlyoutPresenterTheme>
                                 <ControlTheme TargetType="FlyoutPresenter">
                                     <Setter Property="Background" Value="Transparent" />

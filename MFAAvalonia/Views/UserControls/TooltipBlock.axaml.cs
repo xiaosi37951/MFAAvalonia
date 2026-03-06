@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MFAAvalonia.Views.UserControls;
@@ -16,9 +17,16 @@ public class TooltipBlock : TemplatedControl
     private const string ElementBorder = "PART_Border";
 
     private Border? _border;
+    private FlyoutBase? _attachedFlyout;
+    private Control? _flyoutContentControl;
+    private TopLevel? _topLevel;
     private Button? _parentButton;
     private bool _isInsideButton;
     private bool _isPointerOverBorder;
+    private bool _isPointerOverFlyout;
+    private CancellationTokenSource? _closeDelayCts;
+
+    private const int CloseDelayMs = 300;
 
     public TooltipBlock()
     {
@@ -94,12 +102,22 @@ public class TooltipBlock : TemplatedControl
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+
+        UnhookFlyoutEvents();
         _border = e.NameScope.Find<Border>(ElementBorder);
+        if (_border != null)
+            HookFlyoutEvents(_border);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        _topLevel = TopLevel.GetTopLevel(this);
+        if (_topLevel != null)
+        {
+            _topLevel.PointerMoved += OnTopLevelPointerMoved;
+            _topLevel.PointerExited += OnTopLevelPointerExited;
+        }
 
         // 检测是否位于 Button/ToggleButton 内部
         // SukiUI 的按钮模板中 ContentPresenter 设置了 IsHitTestVisible="False"，
@@ -122,6 +140,13 @@ public class TooltipBlock : TemplatedControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        if (_topLevel != null)
+        {
+            _topLevel.PointerMoved -= OnTopLevelPointerMoved;
+            _topLevel.PointerExited -= OnTopLevelPointerExited;
+            _topLevel = null;
+        }
+
         if (_isInsideButton && _parentButton != null)
         {
             _parentButton.PointerMoved -= OnParentPointerMoved;
@@ -135,7 +160,10 @@ public class TooltipBlock : TemplatedControl
         }
 
         _isPointerOverBorder = false;
+        _isPointerOverFlyout = false;
         _isInsideButton = false;
+        CancelPendingClose();
+        UnhookFlyoutEvents();
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -152,13 +180,15 @@ public class TooltipBlock : TemplatedControl
         if (isOver && !_isPointerOverBorder)
         {
             _isPointerOverBorder = true;
+            CancelPendingClose();
             _ = AnimateOpacity(HoverOpacity);
-            FlyoutBase.ShowAttachedFlyout(_border);
+            ShowFlyout();
         }
         else if (!isOver && _isPointerOverBorder)
         {
             _isPointerOverBorder = false;
-            _ = AnimateOpacity(NormalOpacity);
+            UpdateOpacityByState();
+            _ = TryCloseFlyoutWithDelayAsync();
         }
     }
 
@@ -170,20 +200,212 @@ public class TooltipBlock : TemplatedControl
         if (_isPointerOverBorder)
         {
             _isPointerOverBorder = false;
-            _ = AnimateOpacity(NormalOpacity);
+            UpdateOpacityByState();
+            _ = TryCloseFlyoutWithDelayAsync();
         }
     }
 
     private void OnPointerEnter(object? sender, PointerEventArgs e)
     {
+        _isPointerOverBorder = true;
+        CancelPendingClose();
         _ = AnimateOpacity(HoverOpacity);
-        if (_border != null)
-            FlyoutBase.ShowAttachedFlyout(_border);
+        ShowFlyout();
     }
 
     private void OnPointerLeave(object? sender, PointerEventArgs e)
     {
-        _ = AnimateOpacity(NormalOpacity);
+        if (IsPointerEventStillInsideBorder(e))
+            return;
+
+        _isPointerOverBorder = false;
+        UpdateOpacityByState();
+        _ = TryCloseFlyoutWithDelayAsync();
+    }
+
+    private void OnTopLevelPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (sender is not TopLevel topLevel)
+            return;
+
+        var wasActive = _isPointerOverBorder || _isPointerOverFlyout;
+
+        _isPointerOverBorder = IsPointerInControlScreenRegion(_border, topLevel, e);
+        _isPointerOverFlyout = IsPointerInControlScreenRegion(_flyoutContentControl, topLevel, e);
+
+        if (_isPointerOverBorder || _isPointerOverFlyout)
+        {
+            CancelPendingClose();
+            if (_isPointerOverBorder)
+                ShowFlyout();
+
+            if (!wasActive)
+                _ = AnimateOpacity(HoverOpacity);
+            return;
+        }
+
+        if (wasActive)
+        {
+            UpdateOpacityByState();
+            _ = TryCloseFlyoutWithDelayAsync();
+        }
+    }
+
+    private void OnTopLevelPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (!_isPointerOverBorder && !_isPointerOverFlyout)
+            return;
+
+        _isPointerOverBorder = false;
+        _isPointerOverFlyout = false;
+        UpdateOpacityByState();
+        _ = TryCloseFlyoutWithDelayAsync();
+    }
+
+    private bool IsPointerEventStillInsideBorder(PointerEventArgs e)
+    {
+        if (_border == null || _border.Bounds.Width <= 0 || _border.Bounds.Height <= 0)
+            return false;
+
+        var position = e.GetPosition(_border);
+        return new Rect(0, 0, _border.Bounds.Width, _border.Bounds.Height).Contains(position);
+    }
+
+    private bool IsPointerInControlScreenRegion(Control? control, TopLevel topLevel, PointerEventArgs e)
+    {
+        if (control == null || !control.IsEffectivelyVisible || control.Bounds.Width <= 0 || control.Bounds.Height <= 0)
+            return false;
+
+        if (control.GetVisualRoot() is not TopLevel controlTopLevel)
+            return false;
+
+        var pointerInTopLevel = e.GetPosition(topLevel);
+        var pointerScreen = topLevel.PointToScreen(pointerInTopLevel);
+
+        PixelPoint controlTopLeft;
+        try
+        {
+            controlTopLeft = control.PointToScreen(default);
+        }
+        catch (ArgumentException)
+        {
+            // 控件可能在该帧已脱离视觉树，按未命中处理
+            return false;
+        }
+
+        var controlScaling = controlTopLevel.RenderScaling;
+
+        var controlRect = new Rect(
+            controlTopLeft.X,
+            controlTopLeft.Y,
+            control.Bounds.Width * controlScaling,
+            control.Bounds.Height * controlScaling);
+
+        return controlRect.Contains(new Point(pointerScreen.X, pointerScreen.Y));
+    }
+
+    private void HookFlyoutEvents(Border border)
+    {
+        _attachedFlyout = FlyoutBase.GetAttachedFlyout(border);
+        if (_attachedFlyout == null)
+            return;
+
+        _attachedFlyout.Opened += OnFlyoutOpened;
+        _attachedFlyout.Closed += OnFlyoutClosed;
+
+        if (_attachedFlyout is Flyout { Content: Control contentControl })
+        {
+            _flyoutContentControl = contentControl;
+            _flyoutContentControl.PointerEntered += OnFlyoutPointerEntered;
+            _flyoutContentControl.PointerExited += OnFlyoutPointerExited;
+        }
+    }
+
+    private void UnhookFlyoutEvents()
+    {
+        if (_attachedFlyout != null)
+        {
+            _attachedFlyout.Opened -= OnFlyoutOpened;
+            _attachedFlyout.Closed -= OnFlyoutClosed;
+            _attachedFlyout = null;
+        }
+
+        if (_flyoutContentControl != null)
+        {
+            _flyoutContentControl.PointerEntered -= OnFlyoutPointerEntered;
+            _flyoutContentControl.PointerExited -= OnFlyoutPointerExited;
+            _flyoutContentControl = null;
+        }
+    }
+
+    private void OnFlyoutOpened(object? sender, EventArgs e)
+    {
+        CancelPendingClose();
+    }
+
+    private void OnFlyoutClosed(object? sender, EventArgs e)
+    {
+        _isPointerOverFlyout = false;
+        if (!_isPointerOverBorder)
+            _ = AnimateOpacity(NormalOpacity);
+    }
+
+    private void OnFlyoutPointerEntered(object? sender, PointerEventArgs e)
+    {
+        _isPointerOverFlyout = true;
+        CancelPendingClose();
+        _ = AnimateOpacity(HoverOpacity);
+    }
+
+    private void OnFlyoutPointerExited(object? sender, PointerEventArgs e)
+    {
+        _isPointerOverFlyout = false;
+        UpdateOpacityByState();
+        _ = TryCloseFlyoutWithDelayAsync();
+    }
+
+    private void ShowFlyout()
+    {
+        if (_border == null)
+            return;
+
+        FlyoutBase.ShowAttachedFlyout(_border);
+    }
+
+    private void CancelPendingClose()
+    {
+        _closeDelayCts?.Cancel();
+        _closeDelayCts?.Dispose();
+        _closeDelayCts = null;
+    }
+
+    private void UpdateOpacityByState()
+    {
+        _ = AnimateOpacity(_isPointerOverBorder || _isPointerOverFlyout ? HoverOpacity : NormalOpacity);
+    }
+
+    private async Task TryCloseFlyoutWithDelayAsync()
+    {
+        if (_attachedFlyout == null)
+            return;
+
+        CancelPendingClose();
+        _closeDelayCts = new CancellationTokenSource();
+        var token = _closeDelayCts.Token;
+
+        try
+        {
+            await Task.Delay(CloseDelayMs, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (token.IsCancellationRequested || _isPointerOverBorder || _isPointerOverFlyout)
+            return;
+
+        _attachedFlyout.Hide();
     }
 
     async private Task AnimateOpacity(double targetOpacity)
