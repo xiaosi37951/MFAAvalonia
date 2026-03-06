@@ -1114,6 +1114,11 @@ public partial class TaskQueueViewModel : ViewModelBase
             return;
         }
 
+        if (await RefreshConnectionTargetIfNeededAsync())
+        {
+            LoggerHelper.Info("Reconnect: connection target was empty, refreshed device list before connecting.");
+        }
+
         if (CurrentController != MaaControllerTypes.PlayCover && CurrentDevice == null)
         {
             ToastHelper.Warn(LangKeys.CannotStart.ToLocalization(), LangKeys.DeviceNotSelected.ToLocalization());
@@ -1148,6 +1153,46 @@ public partial class TaskQueueViewModel : ViewModelBase
         {
             LoggerHelper.Warning($"Reconnect failed: {ex.Message}");
         }
+    }
+
+    private bool NeedsRefreshBeforeReconnect()
+    {
+        if (CurrentController == MaaControllerTypes.None)
+            return true;
+
+        return CurrentController switch
+        {
+            MaaControllerTypes.PlayCover => false,
+            MaaControllerTypes.Adb => CurrentDevice is not AdbDeviceInfo adbInfo
+                || string.IsNullOrWhiteSpace(adbInfo.AdbSerial),
+            MaaControllerTypes.Win32 or MaaControllerTypes.Gamepad => CurrentDevice is not DesktopWindowInfo window
+                || window.Handle == IntPtr.Zero,
+            _ => CurrentDevice == null,
+        };
+    }
+
+    private async Task<bool> RefreshConnectionTargetIfNeededAsync()
+    {
+        if (!NeedsRefreshBeforeReconnect())
+            return false;
+
+        if (CurrentController == MaaControllerTypes.PlayCover)
+            return false;
+
+        try
+        {
+            await Task.Run(() => AutoDetectDevice());
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"Refresh connection target before reconnect failed: {ex.Message}");
+        }
+
+        return true;
     }
 
     [RelayCommand]

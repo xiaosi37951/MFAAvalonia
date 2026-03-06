@@ -126,7 +126,10 @@ public partial class MonitorItemViewModel : ViewModelBase
     {
         try
         {
-            await Processor.ReconnectAsync();
+            if (Processor.ViewModel != null)
+                await Processor.ViewModel.ReconnectCommand.ExecuteAsync(null);
+            else
+                await Processor.ReconnectAsync();
         }
         catch (OperationCanceledException)
         {
