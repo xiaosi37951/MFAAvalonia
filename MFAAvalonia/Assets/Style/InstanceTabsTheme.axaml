@@ -73,6 +73,8 @@
         <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Padding" Value="0" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
         <Setter Property="Template">
             <ControlTemplate>
                 <Border CornerRadius="{TemplateBinding CornerRadius}"
@@ -224,6 +226,10 @@
         <Style Selector="^:pointerover /template/ Path#PART_TabShape">
             <Setter Property="IsVisible" Value="True" />
             <Setter Property="Fill" Value="{DynamicResource TabBarHoverBackground}" />
+        </Style>
+        <Style Selector="^:pointerover /template/ Button#PART_CloseButton">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
         </Style>
         <Style Selector="^:pointerover">
             <Setter Property="Foreground" Value="{DynamicResource SukiText}" />

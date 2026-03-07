@@ -12,6 +12,7 @@ using SukiUI.MessageBox;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,6 +21,15 @@ namespace MFAAvalonia.ViewModels.Other;
 public partial class InstanceTabBarViewModel : ViewModelBase
 {
     public ObservableCollection<InstanceTabViewModel> Tabs { get; } = new();
+    public ObservableCollection<RecentClosedInstanceItem> RecentClosedTabs { get; } = new();
+    public string DropdownSearchWatermark => "InstanceDropdownSearch".ToLocalization();
+    public string OpenConfigsHeaderText => "InstanceDropdownOpenConfigs".ToLocalization();
+    public string RecentClosedHeaderText => "InstanceDropdownRecentClosed".ToLocalization();
+    public string NoOpenConfigsText => "InstanceDropdownNoOpenConfigs".ToLocalization();
+    public string NoRecentClosedText => "InstanceDropdownNoRecentClosed".ToLocalization();
+    public string CloseConfigTooltipText => "InstanceDropdownCloseConfig".ToLocalization();
+    public bool HasRecentClosedItems => RecentClosedTabs.Count > 0;
+    public bool ShowRecentClosedSection => HasRecentClosedItems && IsRecentClosedExpanded;
 
     private bool _isReloading;
 
@@ -31,8 +41,13 @@ public partial class InstanceTabBarViewModel : ViewModelBase
     [ObservableProperty] private string _presetSearchText = string.Empty;
 
     [ObservableProperty] private string _searchText = string.Empty;
+    [ObservableProperty] private bool _isOpenTabsExpanded = true;
+    [ObservableProperty] private bool _isRecentClosedExpanded = true;
+    [ObservableProperty] private bool _showOpenTabsEmptyState;
+    [ObservableProperty] private bool _showRecentClosedEmptyState;
 
     public ObservableCollection<InstanceTabViewModel> FilteredTabs { get; } = new();
+    public ObservableCollection<RecentClosedInstanceItem> FilteredRecentClosedTabs { get; } = new();
     public ObservableCollection<MaaInterface.MaaInterfacePreset> FilteredInstancePresets { get; } = new();
 
     partial void OnIsDropdownOpenChanged(bool value)
@@ -41,12 +56,25 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         {
             SearchText = string.Empty;
             RefreshFilteredTabs();
+            RefreshFilteredRecentClosedTabs();
         }
     }
 
     partial void OnSearchTextChanged(string value)
     {
         RefreshFilteredTabs();
+        RefreshFilteredRecentClosedTabs();
+    }
+
+    partial void OnIsOpenTabsExpandedChanged(bool value)
+    {
+        ShowOpenTabsEmptyState = value && FilteredTabs.Count == 0;
+    }
+
+    partial void OnIsRecentClosedExpandedChanged(bool value)
+    {
+        ShowRecentClosedEmptyState = value && FilteredRecentClosedTabs.Count == 0;
+        OnPropertyChanged(nameof(ShowRecentClosedSection));
     }
 
     partial void OnPresetSearchTextChanged(string value)
@@ -74,6 +102,27 @@ public partial class InstanceTabBarViewModel : ViewModelBase
                 FilteredTabs.Add(tab);
             }
         }
+
+        ShowOpenTabsEmptyState = IsOpenTabsExpanded && FilteredTabs.Count == 0;
+    }
+
+    private void RefreshFilteredRecentClosedTabs()
+    {
+        FilteredRecentClosedTabs.Clear();
+        var query = SearchText?.Trim() ?? string.Empty;
+        foreach (var item in RecentClosedTabs)
+        {
+            if (string.IsNullOrEmpty(query)
+                || item.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || item.MetaText.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                FilteredRecentClosedTabs.Add(item);
+            }
+        }
+
+        ShowRecentClosedEmptyState = IsRecentClosedExpanded && FilteredRecentClosedTabs.Count == 0;
+        OnPropertyChanged(nameof(HasRecentClosedItems));
+        OnPropertyChanged(nameof(ShowRecentClosedSection));
     }
 
     private void RefreshFilteredInstancePresets()
@@ -106,6 +155,18 @@ public partial class InstanceTabBarViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void ToggleOpenTabsExpanded()
+    {
+        IsOpenTabsExpanded = !IsOpenTabsExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleRecentClosedExpanded()
+    {
+        IsRecentClosedExpanded = !IsRecentClosedExpanded;
+    }
+
+    [RelayCommand]
     private void SelectInstance(InstanceTabViewModel? tab)
     {
         if (tab != null)
@@ -113,6 +174,38 @@ public partial class InstanceTabBarViewModel : ViewModelBase
             ActiveTab = tab;
             IsDropdownOpen = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task ReopenRecentClosed(RecentClosedInstanceItem? item)
+    {
+        if (item == null || string.IsNullOrWhiteSpace(item.ConfigContent)) return;
+
+        var targetInstanceId = Tabs.Any(t => t.InstanceId == item.InstanceId)
+            ? MaaProcessorManager.CreateInstanceId()
+            : item.InstanceId;
+
+        var targetPath = Path.Combine(InstanceConfiguration.InstancesDir, $"{targetInstanceId}.json");
+        Directory.CreateDirectory(InstanceConfiguration.InstancesDir);
+        File.WriteAllText(targetPath, item.ConfigContent);
+
+        var processor = MaaProcessorManager.Instance.CreateInstance(targetInstanceId, false);
+        if (!string.IsNullOrWhiteSpace(item.Name))
+        {
+            MaaProcessorManager.Instance.SetInstanceName(targetInstanceId, item.Name);
+        }
+
+        await Task.Run(() => processor.InitializeData());
+
+        ReloadTabs();
+        var tab = Tabs.FirstOrDefault(t => t.Processor == processor);
+        if (tab != null)
+        {
+            ActiveTab = tab;
+        }
+
+        RecentClosedTabs.Remove(item);
+        RefreshFilteredRecentClosedTabs();
     }
 
 
@@ -158,6 +251,7 @@ public partial class InstanceTabBarViewModel : ViewModelBase
             }
 
             RefreshFilteredTabs();
+            RefreshFilteredRecentClosedTabs();
         }
         finally
         {
@@ -415,10 +509,22 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         // 检查定时任务是否使用了该实例，若有则重新分配
         ReassignTimersFromInstance(tab.InstanceId, tab.Name);
 
+        var configPath = tab.Processor.InstanceConfiguration.GetConfigFilePath();
+        var configContent = File.Exists(configPath) ? File.ReadAllText(configPath) : string.Empty;
+        var recentClosedItem = RecentClosedInstanceItem.FromTab(tab, configContent);
+
         if (MaaProcessorManager.Instance.RemoveInstance(tab.InstanceId))
         {
+            RecentClosedTabs.Remove(RecentClosedTabs.FirstOrDefault(item => item.InstanceId == tab.InstanceId));
+            RecentClosedTabs.Insert(0, recentClosedItem);
+            while (RecentClosedTabs.Count > 12)
+            {
+                RecentClosedTabs.RemoveAt(RecentClosedTabs.Count - 1);
+            }
+
             Tabs.Remove(tab);
             RefreshFilteredTabs();
+            RefreshFilteredRecentClosedTabs();
             if (ActiveTab == tab || ActiveTab == null)
             {
                 ActiveTab = Tabs.FirstOrDefault();
@@ -464,5 +570,35 @@ public partial class InstanceTabBarViewModel : ViewModelBase
             .WithTitle(LangKeys.TaskRename.ToLocalization())
             .WithViewModel(dialog => new RenameInstanceDialogViewModel(dialog, tab))
             .TryShow();
+    }
+}
+
+public sealed class RecentClosedInstanceItem : ViewModelBase
+{
+    public string InstanceId { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string MetaText { get; init; } = string.Empty;
+    public string TimeText { get; init; } = string.Empty;
+    public string TaskCountText { get; init; } = string.Empty;
+    public string ConfigContent { get; init; } = string.Empty;
+
+    public static RecentClosedInstanceItem FromTab(InstanceTabViewModel tab, string? configContent)
+    {
+        var metaParts = new[]
+            {
+                tab.ControllerBadgeText,
+                tab.ResourceBadgeText
+            }
+            .Where(static part => !string.IsNullOrWhiteSpace(part) && part != "-");
+
+        return new RecentClosedInstanceItem
+        {
+            InstanceId = tab.InstanceId,
+            Name = tab.Name,
+            MetaText = string.Join(" · ", metaParts),
+            TimeText = "刚刚",
+            TaskCountText = tab.TaskCountText,
+            ConfigContent = configContent ?? string.Empty
+        };
     }
 }

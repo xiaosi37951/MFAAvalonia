@@ -158,6 +158,7 @@ public partial class InstanceTabViewModel : ViewModelBase
     [ObservableProperty] private string _resourceBadgeText = string.Empty;
 
     [ObservableProperty] private string _statusBadgeText = string.Empty;
+    [ObservableProperty] private string _dropdownMetaText = string.Empty;
 
     [ObservableProperty] private bool _isStatusConnectedVisible;
 
@@ -193,6 +194,8 @@ public partial class InstanceTabViewModel : ViewModelBase
 
         IsStatusConnectedVisible = !IsRunning && IsConnected;
         IsStatusDisconnectedVisible = !IsRunning && !IsConnected;
+        DropdownMetaText = string.Join(" · ", new[] { ControllerBadgeText, ResourceBadgeText }
+            .Where(part => !string.IsNullOrWhiteSpace(part) && part != "-"));
     }
 
     public void UpdateName()

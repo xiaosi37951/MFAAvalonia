@@ -272,10 +272,25 @@ public partial class InstanceTabBar : UserControl
 
     private void OnDropdownCloseClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        e.Handled = true;
+
         if (sender is Button btn && btn.DataContext is InstanceTabViewModel tab)
         {
             if (DataContext is InstanceTabBarViewModel vm)
                 vm.CloseInstanceCommand.Execute(tab);
+        }
+    }
+
+    private void OnRecentClosedItemPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+
+        if (sender is Border border && border.DataContext is RecentClosedInstanceItem item)
+        {
+            if (DataContext is InstanceTabBarViewModel viewModel)
+            {
+                viewModel.ReopenRecentClosedCommand.Execute(item);
+            }
         }
     }
 }

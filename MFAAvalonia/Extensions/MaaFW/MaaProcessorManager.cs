@@ -86,10 +86,14 @@ public sealed class MaaProcessorManager
                 _instanceOrder.Add(instanceId);
                 if (!_instanceNames.ContainsKey(instanceId))
                 {
-                    // 使用i18n的"配置+数字"格式命名
-                    var configName = LangKeys.Config.ToLocalization();
-                    var nextNumber = GetNextInstanceNumber();
-                    var name = $"{configName} {nextNumber}";
+                    var name = InstanceConfiguration.ReadValueFromFile(instanceId, ConfigurationKeys.InstanceName);
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        var configName = LangKeys.Config.ToLocalization();
+                        var nextNumber = GetNextInstanceNumber();
+                        name = $"{configName} {nextNumber}";
+                    }
+
                     _instanceNames[instanceId] = name;
                     processor.InstanceConfiguration.SetValue(ConfigurationKeys.InstanceName, name);
                 }

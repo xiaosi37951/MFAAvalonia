@@ -2024,4 +2024,23 @@
     <data name="RemoveTimer" xml:space="preserve">
         <value>刪除定時</value>
     </data>
+  <data name="InstanceDropdownSearch" xml:space="preserve">
+    <value>搜尋配置</value>
+  </data>
+  <data name="InstanceDropdownOpenConfigs" xml:space="preserve">
+    <value>打開配置</value>
+  </data>
+  <data name="InstanceDropdownRecentClosed" xml:space="preserve">
+    <value>最近關閉</value>
+  </data>
+  <data name="InstanceDropdownNoOpenConfigs" xml:space="preserve">
+    <value>暫無打開的配置</value>
+  </data>
+  <data name="InstanceDropdownNoRecentClosed" xml:space="preserve">
+    <value>暂无最近關閉记录</value>
+  </data>
+  <data name="InstanceDropdownCloseConfig" xml:space="preserve">
+    <value>關閉配置</value>
+  </data>
 </root>
+

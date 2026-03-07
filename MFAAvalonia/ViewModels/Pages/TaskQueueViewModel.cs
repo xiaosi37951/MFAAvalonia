@@ -958,7 +958,7 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     [ObservableProperty] private int _shouldShow = 0;
     [ObservableProperty] private ObservableCollection<object> _devices = [];
-    [ObservableProperty]
+       [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentDeviceTooltipText))]
     private object? _currentDevice;
 
@@ -2409,10 +2409,8 @@ public partial class TaskQueueViewModel : ViewModelBase
     private int _liveViewImageCount;
     private int _liveViewImageNewestCount;
 
-    private static int _liveViewSemaphoreCurrentCount = 2;
     private const int LiveViewSemaphoreMaxCount = 5;
-    private static int _liveViewSemaphoreFailCount = 0;
-    private static readonly SemaphoreSlim _liveViewSemaphore = new(_liveViewSemaphoreCurrentCount, LiveViewSemaphoreMaxCount);
+    private static readonly SemaphoreSlim _liveViewSemaphore = new(2, LiveViewSemaphoreMaxCount);
 
     private readonly WriteableBitmap?[] _liveViewImageCache = new WriteableBitmap?[LiveViewSemaphoreMaxCount];
 
@@ -2453,21 +2451,6 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         if (!await _liveViewSemaphore.WaitAsync(0))
         {
-            if (++_liveViewSemaphoreFailCount < 3)
-            {
-                buffer?.Dispose();
-                return;
-            }
-
-            _liveViewSemaphoreFailCount = 0;
-
-            if (_liveViewSemaphoreCurrentCount < LiveViewSemaphoreMaxCount)
-            {
-                _liveViewSemaphoreCurrentCount++;
-                _liveViewSemaphore.Release();
-                LoggerHelper.Info($"LiveView Semaphore Full, increase semaphore count to {_liveViewSemaphoreCurrentCount}");
-            }
-
             buffer?.Dispose();
             return;
         }
@@ -2531,7 +2514,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             });
 
             Interlocked.Exchange(ref _liveViewImageNewestCount, count);
-            _liveViewSemaphoreFailCount = 0;
 
             var now = DateTime.UtcNow;
             Interlocked.Increment(ref _liveViewFrameCount);
