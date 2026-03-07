@@ -87,13 +87,35 @@ public partial class AnnouncementViewModel : ViewModelBase
         }
     }
 
-    public static void AddAnnouncement(string announcement)
+    public static async Task AddAnnouncementAsync(string announcement, string? title = null, string? projectDir = null)
     {
-        _publicAnnouncementItems.Add(new AnnouncementItem
+        var resolvedContent = await announcement.ResolveContentAsync(projectDir).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(resolvedContent))
         {
-            Title = "Welcome",
-            Content = announcement
-        });
+            return;
+        }
+
+        SplitFirstLine(resolvedContent, out var firstLine, out var remainingContent);
+        var parsedTitle = firstLine.TrimStart('#', ' ').Trim();
+        var item = new AnnouncementItem
+        {
+            Title = string.IsNullOrWhiteSpace(parsedTitle) ? (title ?? "Welcome") : parsedTitle,
+            Content = TaskQueueView.ConvertCustomMarkup(string.IsNullOrWhiteSpace(remainingContent) ? resolvedContent : remainingContent)
+        };
+
+        var normalizedContent = NormalizeAnnouncementContent(item.Content);
+        if (string.IsNullOrWhiteSpace(normalizedContent))
+        {
+            return;
+        }
+
+        if (_publicAnnouncementItems.Any(existing =>
+                NormalizeAnnouncementContent(existing.Content).Equals(normalizedContent, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        _publicAnnouncementItems.Add(item);
     }
 
     /// <summary>
@@ -147,11 +169,20 @@ public partial class AnnouncementViewModel : ViewModelBase
             }).ConfigureAwait(false);
 
             // UI 线程更新公告列表
+            var tempContentSet = tempItems
+                .Select(item => NormalizeAnnouncementContent(item.Content))
+                .Where(content => !string.IsNullOrWhiteSpace(content))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var publicItems = _publicAnnouncementItems
+                .Where(item => !tempContentSet.Contains(NormalizeAnnouncementContent(item.Content)))
+                .ToList();
+
             await DispatcherHelper.RunOnMainThreadAsync(() =>
             {
                 AnnouncementItems.Clear();
                 AnnouncementItems.AddRange(tempItems);
-                AnnouncementItems.AddRange(_publicAnnouncementItems);
+                AnnouncementItems.AddRange(publicItems);
                 LoggerHelper.Info($"公告数量：{AnnouncementItems.Count}");
             });
         }
@@ -205,6 +236,13 @@ public partial class AnnouncementViewModel : ViewModelBase
             // 保留剩余内容的 Markdown 格式（包含换行符）
             remainingContent = content.Substring(firstNewLineIndex + matchedNewLine.Length);
         }
+    }
+
+    private static string NormalizeAnnouncementContent(string? content)
+    {
+        return string.IsNullOrWhiteSpace(content)
+            ? string.Empty
+            : content.Replace("\r\n", "\n").Trim();
     }
 
     private AnnouncementView? _view;

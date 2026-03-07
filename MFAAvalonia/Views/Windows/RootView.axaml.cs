@@ -335,7 +335,7 @@ public partial class RootView : SukiWindow
 
                         if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Welcome))
                         {
-                            AnnouncementViewModel.AddAnnouncement(LanguageHelper.GetLocalizedString(MaaProcessor.Interface.Welcome));
+                            await AnnouncementViewModel.AddAnnouncementAsync(MaaProcessor.Interface.Welcome, projectDir: AppContext.BaseDirectory);
                         }
                     }));
 
