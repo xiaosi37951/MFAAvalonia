@@ -391,6 +391,9 @@ public static class LangKeys
 	public static readonly string ExternalNotificationServerChanSendKey = "ExternalNotificationServerChanSendKey";
 	public static readonly string CreateCustomTheme = "CreateCustomTheme";
 	public static readonly string ConfigurePrimaryAccent = "ConfigurePrimaryAccent";
+	public static readonly string CustomThemeName = "CustomThemeName";
+	public static readonly string CustomThemePrimaryColor = "CustomThemePrimaryColor";
+	public static readonly string CustomThemeAccentColor = "CustomThemeAccentColor";
 	public static readonly string ColorThemeAlreadyExists = "ColorThemeAlreadyExists";
 	public static readonly string Later = "Later";
 	public static readonly string ErrorWhenCheck = "ErrorWhenCheck";

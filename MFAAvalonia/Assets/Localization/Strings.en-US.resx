@@ -1146,6 +1146,15 @@
     <data name="ConfigurePrimaryAccent" xml:space="preserve">
         <value>Configure Primary and Accent Colors and Apply to Application</value>
     </data>
+    <data name="CustomThemeName" xml:space="preserve">
+        <value>Theme Name</value>
+    </data>
+    <data name="CustomThemePrimaryColor" xml:space="preserve">
+        <value>Primary Color</value>
+    </data>
+    <data name="CustomThemeAccentColor" xml:space="preserve">
+        <value>Accent Color</value>
+    </data>
     <data name="ColorThemeAlreadyExists" xml:space="preserve">
         <value>The color theme already exists</value>
     </data>

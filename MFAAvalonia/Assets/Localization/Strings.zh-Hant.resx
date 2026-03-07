@@ -1146,6 +1146,15 @@
     <data name="ConfigurePrimaryAccent" xml:space="preserve">
         <value>配置主色調與強調色組合，並套用至應用程式</value>
     </data>
+    <data name="CustomThemeName" xml:space="preserve">
+        <value>主題名稱</value>
+    </data>
+    <data name="CustomThemePrimaryColor" xml:space="preserve">
+        <value>主色調</value>
+    </data>
+    <data name="CustomThemeAccentColor" xml:space="preserve">
+        <value>強調色</value>
+    </data>
     <data name="ColorThemeAlreadyExists" xml:space="preserve">
         <value>該顏色主題已存在</value>
     </data>
