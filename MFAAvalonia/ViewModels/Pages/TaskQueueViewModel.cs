@@ -1631,6 +1631,8 @@ public partial class TaskQueueViewModel : ViewModelBase
             16 => Win32InputMethod.PostThreadMessage,
             32 => Win32InputMethod.SendMessageWithCursorPos,
             64 => Win32InputMethod.PostMessageWithCursorPos,
+            128 => Win32InputMethod.SendMessageWithWindowPos,
+            256 => Win32InputMethod.PostMessageWithWindowPos,
             _ => null
         };
     }
