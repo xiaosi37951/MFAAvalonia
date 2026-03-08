@@ -513,6 +513,13 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         {
             processor.ViewModel?.ApplyPresetCommand.Execute(preset);
             var presetDisplayName = preset.DisplayName;
+            if (string.IsNullOrWhiteSpace(presetDisplayName) || presetDisplayName.StartsWith("$", StringComparison.Ordinal))
+            {
+                presetDisplayName = LanguageHelper.GetLocalizedDisplayName(
+                    preset.Label,
+                    !string.IsNullOrWhiteSpace(preset.DisplayName) ? preset.DisplayName : preset.Name);
+            }
+
             if (!string.IsNullOrWhiteSpace(presetDisplayName))
             {
                 MaaProcessorManager.Instance.SetInstanceName(processor.InstanceId, presetDisplayName);
