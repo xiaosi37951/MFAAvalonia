@@ -842,7 +842,9 @@ public sealed class MaaProcessorManager
                     {
                         var preset = presets[i];
                         var instanceId = CreateUniqueId();
-                        var instanceName = preset.Label ?? preset.Name ?? $"{LangKeys.Config.ToLocalization()} {_instanceOrder.Count + 1}";
+                        var instanceName = LanguageHelper.GetLocalizedDisplayName(
+                            preset.Label,
+                            preset.Name ?? $"{LangKeys.Config.ToLocalization()} {_instanceOrder.Count + 1}");
 
                         _instanceNames[instanceId] = instanceName;
                         _instanceOrder.Add(instanceId);
