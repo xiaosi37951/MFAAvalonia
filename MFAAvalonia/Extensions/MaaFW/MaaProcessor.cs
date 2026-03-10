@@ -1230,6 +1230,12 @@ public class MaaProcessor
                         : LangKeys.Window.ToLocalization()), true,
                 LangKeys.InitControllerFailed.ToLocalization()));
 
+            if (controller == null)
+            {
+                LoggerHelper.Warning("Controller initialization returned null, aborting current connection attempt.");
+                return (null, InvalidResource, ShouldRetry);
+            }
+
             var displayShortSide = Interface?.Controller?.Find(c => c.Type != null && c.Type.Equals(ViewModel?.CurrentController.ToJsonKey(), StringComparison.OrdinalIgnoreCase))?.DisplayShortSide;
 
             var displayLongSide = Interface?.Controller?.Find(c => c.Type != null && c.Type.Equals(ViewModel?.CurrentController.ToJsonKey(), StringComparison.OrdinalIgnoreCase))?.DisplayLongSide;
@@ -3004,6 +3010,11 @@ public class MaaProcessor
             else
                 ToastHelper.Info(LangKeys.Tip.ToLocalization(), LangKeys.ConnectingTo.ToLocalizationFormatted(true, targetKey));
 
+            if (isAdb)
+            {
+                await EnsureAdbTargetReadyAsync(token, showMessage, delayFingerprintMatching);
+            }
+
             if (!isPlayCover && ViewModel?.CurrentDevice == null && InstanceConfiguration.GetValue(ConfigurationKeys.AutoDetectOnConnectionFailed, true) && !delayFingerprintMatching)
                 ViewModel?.TryReadAdbDeviceFromConfig(false, true);
 
@@ -3041,16 +3052,62 @@ public class MaaProcessor
         }
     }
 
+    private async Task EnsureAdbTargetReadyAsync(CancellationToken token, bool showMessage, bool delayFingerprintMatching)
+    {
+        if (ViewModel == null)
+            return;
+
+        var currentAdbDevice = ViewModel.CurrentDevice as AdbDeviceInfo;
+        var hasValidAdbSerial = !string.IsNullOrWhiteSpace(currentAdbDevice?.AdbSerial);
+        if (hasValidAdbSerial)
+            return;
+
+        if (InstanceConfiguration.GetValue(ConfigurationKeys.AutoDetectOnConnectionFailed, true) && !delayFingerprintMatching)
+        {
+            ViewModel.TryReadAdbDeviceFromConfig(false, true);
+            currentAdbDevice = ViewModel.CurrentDevice as AdbDeviceInfo;
+            hasValidAdbSerial = !string.IsNullOrWhiteSpace(currentAdbDevice?.AdbSerial);
+            if (hasValidAdbSerial)
+                return;
+        }
+
+        if (!InstanceConfiguration.GetValue(ConfigurationKeys.RetryOnDisconnected, false))
+            return;
+
+        if (!CanStartSoftware(out var reason))
+        {
+            LoggerHelper.Warning($"Skip auto starting emulator before connect: {reason}");
+            return;
+        }
+
+        LoggerHelper.Info("ADB connection target is empty, trying to start emulator before first connect.");
+        await RetryConnectionAsync(token, showMessage, StartSoftware, LangKeys.TryToStartEmulator, true, () =>
+        {
+            if (InstanceConfiguration.GetValue(ConfigurationKeys.AutoDetectOnConnectionFailed, true))
+                ViewModel.TryReadAdbDeviceFromConfig(false, true);
+        });
+    }
+
     async private Task<bool> HandleAdbConnectionAsync(CancellationToken token, bool showMessage = true)
     {
         bool connected = false;
         var retrySteps = new List<Func<CancellationToken, Task<bool>>>
         {
-            async t => await RetryConnectionAsync(t, showMessage, StartSoftware, LangKeys.TryToStartEmulator, InstanceConfiguration.GetValue(ConfigurationKeys.RetryOnDisconnected, false),
-                () =>
+            async t =>
+            {
+                if (!InstanceConfiguration.GetValue(ConfigurationKeys.RetryOnDisconnected, false))
+                    return false;
+
+                if (!CanStartSoftware(out var reason))
                 {
-                    if (InstanceConfiguration.GetValue(ConfigurationKeys.AutoDetectOnConnectionFailed, true)) ViewModel?.TryReadAdbDeviceFromConfig(false, true);
-                }),
+                    LoggerHelper.Warning($"Skip auto starting emulator after ADB connection failure: {reason}");
+                    return false;
+                }
+
+                LoggerHelper.Warning("ADB connection failed, trying to start emulator and refresh device target.");
+                return await RetryConnectionAsync(t, showMessage, StartSoftware, LangKeys.TryToStartEmulator, true,
+                    () => ViewModel?.TryReadAdbDeviceFromConfig(false, true));
+            },
             async t => await RetryConnectionAsync(t, showMessage, ReconnectByAdb, LangKeys.TryToReconnect),
             async t => await RetryConnectionAsync(t, showMessage, RestartAdb, LangKeys.RestartAdb, InstanceConfiguration.GetValue(ConfigurationKeys.AllowAdbRestart, true)),
             async t => await RetryConnectionAsync(t, showMessage, HardRestartAdb, LangKeys.HardRestartAdb, InstanceConfiguration.GetValue(ConfigurationKeys.AllowAdbHardRestart, true))
@@ -3558,10 +3615,38 @@ public class MaaProcessor
             InstanceConfiguration.GetValue(ConfigurationKeys.WaitSoftwareTime, 60.0), _emulatorCancellationTokenSource.Token);
     }
 
+    private bool CanStartSoftware(out string reason)
+    {
+        var exePath = InstanceConfiguration.GetValue(ConfigurationKeys.SoftwarePath, string.Empty);
+        if (string.IsNullOrWhiteSpace(exePath))
+        {
+            reason = "SoftwarePath is empty";
+            return false;
+        }
+
+        if (!File.Exists(exePath))
+        {
+            reason = $"SoftwarePath does not exist: {exePath}";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
     async private Task StartRunnableFile(string exePath, double waitTimeInSeconds, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
+        if (string.IsNullOrWhiteSpace(exePath))
+        {
+            LoggerHelper.Warning("StartRunnableFile skipped because SoftwarePath is empty.");
             return;
+        }
+
+        if (!File.Exists(exePath))
+        {
+            LoggerHelper.Warning($"StartRunnableFile skipped because file does not exist: {exePath}");
+            return;
+        }
 
         if (OperatingSystem.IsWindows() && exePath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
         {
