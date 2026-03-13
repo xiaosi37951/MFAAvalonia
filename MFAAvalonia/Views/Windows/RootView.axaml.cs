@@ -212,6 +212,12 @@ public partial class RootView : SukiWindow
             {
                 try
                 {
+                    var lastWriteTime = File.GetLastWriteTimeUtc(rfile);
+                    if (lastWriteTime > DateTime.UtcNow.AddDays(-7))
+                    {
+                        LoggerHelper.Info("Keeping recent backup file: " + rfile);
+                        continue;
+                    }
                     File.SetAttributes(rfile, FileAttributes.Normal);
                     LoggerHelper.Info("Deleting file: " + rfile);
                     File.Delete(rfile);

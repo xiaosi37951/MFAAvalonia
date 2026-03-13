@@ -511,19 +511,28 @@ public static class VersionChecker
         SetStatusText(textBlock, downloadSpeedTextBlock, LangKeys.Extracting.ToLocalization());
         UniversalExtractor.Extract(tempZipFilePath, tempExtractDir);
         SetStatusText(textBlock, downloadSpeedTextBlock, LangKeys.ApplyingUpdate.ToLocalization());
-        var originPath = tempExtractDir;
-        var interfacePath = Path.Combine(tempExtractDir, "interface.json");
-        var resourceDirPath = Path.Combine(tempExtractDir, "resource");
+        var changesPath = Path.Combine(tempExtractDir, "changes.json");
+        var isIncrementalPackage = File.Exists(changesPath) && !isGithub && !currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase);
+        if (!ValidateExtractedResourcePackage(tempExtractDir, isIncrementalPackage, out var originPath, out var interfacePath, out var resourceDirPath, out var validationMessage))
+        {
+            Dismiss(sukiToast);
+            ToastHelper.Warn(LangKeys.Warning.ToLocalization(), validationMessage, -1);
+            Instances.RootViewModel.SetUpdating(false);
+            return;
+        }
+
+        if (ContainsCoreApplicationFiles(tempExtractDir))
+        {
+            Dismiss(sukiToast);
+            ToastHelper.Warn(LangKeys.Warning.ToLocalization(), "资源热更新包包含核心程序文件，已取消本次热更新，请使用完整程序更新。", -1);
+            Instances.RootViewModel.SetUpdating(false);
+            LoggerHelper.Warning($"取消资源热更新：检测到核心程序文件，目录: {tempExtractDir}");
+            return;
+        }
 
         var wpfDir = AppContext.BaseDirectory;
         var resourcePath = Path.Combine(wpfDir, "resource");
         var agentPath = Path.Combine(wpfDir, "agent");
-        if (!File.Exists(interfacePath))
-        {
-            originPath = Path.Combine(tempExtractDir, "assets");
-            interfacePath = Path.Combine(tempExtractDir, "assets", "interface.json");
-            resourceDirPath = Path.Combine(tempExtractDir, "assets", "resource");
-        }
         // 获取当前运行的可执行文件路径（最可靠的方式，即使用户重命名了文件也能正确获取）
         var exeName = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
         LoggerHelper.Info($"Current process executable: {exeName}");
@@ -543,16 +552,6 @@ public static class VersionChecker
             exeName = Path.Combine(AppContext.BaseDirectory, processName + extension);
             LoggerHelper.Info($"Fallback to process name: {exeName}");
         }
-        var file = new FileInfo(interfacePath);
-
-
-        if (file.Exists)
-        {
-            var targetPath = Path.Combine(wpfDir, "interface.json");
-            file.CopyTo(targetPath, true);
-        }
-
-        var changesPath = Path.Combine(tempExtractDir, "changes.json");
         if (File.Exists(changesPath))
             isFull = false;
         else
@@ -622,8 +621,15 @@ public static class VersionChecker
                     if (changesJson?.Deleted != null)
                     {
                         var delPaths = changesJson.Deleted
-                            .Select(del => Path.Combine(AppContext.BaseDirectory, del))
-                            .Where(File.Exists);
+                            .Select(del =>
+                            {
+                                var isSafe = TryGetSafeUpdateTargetPath(AppContext.BaseDirectory, del, out var fullPath);
+                                if (!isSafe)
+                                    LoggerHelper.Warning($"跳过越界删除路径: {del}");
+                                return (isSafe, fullPath);
+                            })
+                            .Where(item => item.isSafe && File.Exists(item.fullPath))
+                            .Select(item => item.fullPath);
 
                         foreach (var delPath in delPaths)
                         {
@@ -643,8 +649,15 @@ public static class VersionChecker
                     if (changesJson?.Modified != null)
                     {
                         var delPaths = changesJson.Modified
-                            .Select(del => Path.Combine(AppContext.BaseDirectory, del))
-                            .Where(File.Exists);
+                            .Select(del =>
+                            {
+                                var isSafe = TryGetSafeUpdateTargetPath(AppContext.BaseDirectory, del, out var fullPath);
+                                if (!isSafe)
+                                    LoggerHelper.Warning($"跳过越界修改路径: {del}");
+                                return (isSafe, fullPath);
+                            })
+                            .Where(item => item.isSafe && File.Exists(item.fullPath))
+                            .Select(item => item.fullPath);
 
                         foreach (var delPath in delPaths)
                         {
@@ -706,11 +719,11 @@ public static class VersionChecker
             await CopyAndDelete(originPath, wpfDir, progress, true);
         }
 
-        // 更新 interface.json 版本信息
+        // 最后再更新 interface.json，避免先写元数据后拷资源导致半更新状态
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
-        if (File.Exists(newInterfacePath))
+        if (File.Exists(interfacePath))
         {
-            var jsonContent = await File.ReadAllTextAsync(newInterfacePath);
+            var jsonContent = await File.ReadAllTextAsync(interfacePath);
             var @interface = JObject.Parse(jsonContent);
             if (@interface != null)
             {
@@ -2401,6 +2414,140 @@ public static class VersionChecker
         [JsonProperty("added")] public List<string>? Added;
         [JsonExtensionData]
         public Dictionary<string, object>? AdditionalData { get; set; } = new();
+    }
+
+    private static bool ValidateExtractedResourcePackage(
+        string tempExtractDir,
+        bool isIncrementalPackage,
+        out string originPath,
+        out string interfacePath,
+        out string resourceDirPath,
+        out string validationMessage)
+    {
+        originPath = tempExtractDir;
+        interfacePath = Path.Combine(tempExtractDir, "interface.json");
+        resourceDirPath = Path.Combine(tempExtractDir, "resource");
+        validationMessage = string.Empty;
+
+        if (!File.Exists(interfacePath))
+        {
+            originPath = Path.Combine(tempExtractDir, "assets");
+            interfacePath = Path.Combine(originPath, "interface.json");
+            resourceDirPath = Path.Combine(originPath, "resource");
+        }
+
+        if (!Directory.Exists(originPath))
+        {
+            validationMessage = $"资源包目录不存在: {originPath}";
+            return false;
+        }
+
+        if (!isIncrementalPackage && !File.Exists(interfacePath))
+        {
+            validationMessage = "资源包缺少 interface.json";
+            return false;
+        }
+
+        if (!isIncrementalPackage && !Directory.Exists(resourceDirPath))
+        {
+            validationMessage = "资源包缺少 resource 目录";
+            return false;
+        }
+
+        if (File.Exists(interfacePath))
+        {
+            try
+            {
+                _ = JObject.Parse(File.ReadAllText(interfacePath), new JsonLoadSettings
+                {
+                    CommentHandling = CommentHandling.Ignore,
+                    LineInfoHandling = LineInfoHandling.Load
+                });
+            }
+            catch (Exception ex)
+            {
+                validationMessage = $"资源包中的 interface.json 无法解析: {ex.Message}";
+                return false;
+            }
+        }
+
+        if (isIncrementalPackage)
+        {
+            bool hasResourceDir = Directory.Exists(resourceDirPath);
+            bool hasInterface = File.Exists(interfacePath);
+            bool hasPatchFiles = Directory.EnumerateFiles(originPath, "*", SearchOption.AllDirectories)
+                .Any(file => !Path.GetFileName(file).Equals("changes.json", StringComparison.OrdinalIgnoreCase));
+
+            if (!hasResourceDir && !hasInterface && !hasPatchFiles)
+            {
+                validationMessage = "增量资源包不包含可应用的更新内容";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool ContainsCoreApplicationFiles(string packageRoot)
+    {
+        if (string.IsNullOrWhiteSpace(packageRoot) || !Directory.Exists(packageRoot))
+            return false;
+
+        foreach (var file in Directory.EnumerateFiles(packageRoot, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(packageRoot, file);
+            if (IsCoreApplicationFile(relativePath))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsCoreApplicationFile(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return false;
+
+        var normalized = relativePath.Replace('\\', '/').TrimStart('/');
+        var fileName = Path.GetFileName(normalized);
+
+        if (normalized.StartsWith("runtimes/", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("libs/", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (fileName.Equals("MFAAvalonia.dll", StringComparison.OrdinalIgnoreCase)
+            || fileName.Equals("MFAAvalonia.deps.json", StringComparison.OrdinalIgnoreCase)
+            || fileName.Equals("MFAAvalonia.runtimeconfig.json", StringComparison.OrdinalIgnoreCase)
+            || fileName.Equals("MFAUpdater", StringComparison.OrdinalIgnoreCase)
+            || fileName.Equals("MFAUpdater.exe", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            && fileName.Contains("MFAAvalonia", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    private static bool TryGetSafeUpdateTargetPath(string baseDirectory, string relativePath, out string fullPath)
+    {
+        fullPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(baseDirectory) || string.IsNullOrWhiteSpace(relativePath))
+            return false;
+
+        try
+        {
+            var normalizedBaseDirectory = Path.GetFullPath(baseDirectory)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            fullPath = Path.GetFullPath(Path.Combine(baseDirectory, relativePath));
+            return fullPath.StartsWith(normalizedBaseDirectory, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            fullPath = string.Empty;
+            return false;
+        }
     }
 
     private static string[] GetRepoFromUrl(string githubUrl)
