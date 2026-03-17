@@ -303,6 +303,7 @@ public partial class App : Application
             // Add additional views
             .AddView<AddTaskDialogView, AddTaskDialogViewModel>(services)
             .AddView<TaskRemarkDialogView, TaskRemarkDialogViewModel>(services)
+            .AddView<ExportLogDialogView, ExportLogDialogViewModel>(services)
             .AddView<AdbEditorDialogView, AdbEditorDialogViewModel>(services)
             .AddView<PlayCoverEditorDialog, PlayCoverEditorDialogViewModel>(services)
             .AddView<RenameInstanceDialog, RenameInstanceDialogViewModel>(services)

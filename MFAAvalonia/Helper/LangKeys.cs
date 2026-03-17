@@ -435,6 +435,16 @@ public static class LangKeys
 	public static readonly string AlphaVersion = "AlphaVersion";
 	public static readonly string UIUpdateChannel = "UIUpdateChannel";
 	public static readonly string ExportLog = "ExportLog";
+	public static readonly string ExportLogDialogTitle = "ExportLogDialogTitle";
+	public static readonly string ExportLogDialogDescription = "ExportLogDialogDescription";
+	public static readonly string ExportLogDialogLogsSection = "ExportLogDialogLogsSection";
+	public static readonly string ExportLogDialogImagesSection = "ExportLogDialogImagesSection";
+	public static readonly string ExportLogDialogImagesDescription = "ExportLogDialogImagesDescription";
+	public static readonly string ExportLogDialogOtherImages = "ExportLogDialogOtherImages";
+	public static readonly string ExportLogDialogStart = "ExportLogDialogStart";
+	public static readonly string ExportLogTimeRangeLast24Hours = "ExportLogTimeRangeLast24Hours";
+	public static readonly string ExportLogTimeRangeLast3Days = "ExportLogTimeRangeLast3Days";
+	public static readonly string ExportLogTimeRangeLast7Days = "ExportLogTimeRangeLast7Days";
 	public static readonly string ExportLogInProgress = "ExportLogInProgress";
 	public static readonly string ExportLogNoEligibleFiles = "ExportLogNoEligibleFiles";
 	public static readonly string ExportLogSuccess = "ExportLogSuccess";

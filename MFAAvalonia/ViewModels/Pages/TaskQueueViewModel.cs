@@ -1405,13 +1405,19 @@ public partial class TaskQueueViewModel : ViewModelBase
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     [RelayCommand]
-    private async Task Export()
+    private Task Export()
     {
         using var _ = BeginUiLogScope("ExportLogs");
         LoggerHelper.UserAction("导出日志", null,
             operation: "ExportLogs", instanceId: Processor.InstanceId, instanceName: InstanceName);
-        var storageProvider = Instances.RootView?.StorageProvider;
-        await FileLogExporter.CompressRecentLogs(storageProvider);
+
+        Instances.DialogManager.CreateDialog()
+            .WithTitle(LangKeys.ExportLog.ToLocalization())
+            .WithViewModel(dialog => new ExportLogDialogViewModel(dialog))
+            .Dismiss().ByClickingBackground()
+            .TryShow();
+
+        return Task.CompletedTask;
     }
 
     public void AutoDetectDevice(CancellationToken token = default)

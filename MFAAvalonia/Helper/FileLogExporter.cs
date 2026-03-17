@@ -26,12 +26,15 @@ public static class FileLogExporter
         ".webp"
     };
     private static readonly string ExcludedFolder = "vision";
-    public async static Task CompressRecentLogs(IStorageProvider? storageProvider)
+
+    public async static Task<ExportLogResult> CompressRecentLogs(
+        IStorageProvider? storageProvider,
+        ExportLogPackageOptions? options = null)
     {
         if (!await ExportSemaphore.WaitAsync(0))
         {
             ToastHelper.Info(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogInProgress.ToLocalization());
-            return;
+            return ExportLogResult.InProgress;
         }
 
         try
@@ -41,7 +44,7 @@ public static class FileLogExporter
                 ToastHelper.Warn(
                     LangKeys.Warning.ToLocalization(),
                     LangKeys.StopTaskBeforeExportLog.ToLocalization());
-                return;
+                return ExportLogResult.Blocked;
             }
 
         // try
@@ -61,7 +64,7 @@ public static class FileLogExporter
             {
                 ToastHelper.Error(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogFailed.ToLocalization());
                 LoggerHelper.Error("storageProvider is null!");
-                return;
+                return ExportLogResult.Failed;
             }
 
             try
@@ -75,19 +78,21 @@ public static class FileLogExporter
                 });
 
                 if (saveFile == null)
-                    return; // 用户取消了操作
+                    return ExportLogResult.Cancelled;
 
                 // 获取应用程序基目录
                 string baseDirectory = AppPaths.DataRoot;
 
                 // 获取符合条件的日志文件和图片文件
-                var eligibleFiles = await Task.Run(() => GetEligibleFiles(baseDirectory));
+                var eligibleFiles = await Task.Run(() => options == null
+                    ? GetEligibleFiles(baseDirectory)
+                    : GetEligibleFiles(baseDirectory, options));
 
                 if (!eligibleFiles.Any())
                 {
                     LoggerHelper.Warning("未找到符合条件的日志文件或图片。");
                     ToastHelper.Warn(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogNoEligibleFiles.ToLocalization());
-                    return;
+                    return ExportLogResult.NoEligibleFiles;
                 }
 
                 // 创建临时目录用于压缩
@@ -131,7 +136,7 @@ public static class FileLogExporter
                     {
                         LoggerHelper.Warning("日志导出失败：没有任何文件成功复制到临时目录。");
                         ToastHelper.Error(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogFailed.ToLocalization());
-                        return;
+                        return ExportLogResult.Failed;
                     }
 
                     await using (var stream = await saveFile.OpenWriteAsync())
@@ -153,11 +158,13 @@ public static class FileLogExporter
                     }
                     LoggerHelper.Info($"日志和图片已成功压缩到：\n{saveFile.Name}");
                     ToastHelper.Success(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogSuccess.ToLocalization());
+                    return ExportLogResult.Success;
                 }
                 catch (Exception ex)
                 {
                     LoggerHelper.Error($"压缩过程中发生错误：\n{ex}");
                     ToastHelper.Error(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogFailed.ToLocalization());
+                    return ExportLogResult.Failed;
                 }
                 finally
                 {
@@ -173,6 +180,7 @@ public static class FileLogExporter
             {
                 LoggerHelper.Error($"发生错误：\n{ex}");
                 ToastHelper.Error(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogFailed.ToLocalization());
+                return ExportLogResult.Failed;
             }
         }
         finally
@@ -249,6 +257,162 @@ public static class FileLogExporter
         return eligibleFiles;
     }
 
+    private static List<FileInfoEx> GetEligibleFiles(string baseDirectory, ExportLogPackageOptions options)
+    {
+        var eligibleFiles = new List<FileInfoEx>();
+        var candidateFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var debugDir = Path.Combine(baseDirectory, "debug");
+        var logsDir = Path.Combine(baseDirectory, "logs");
+
+        if (options.IncludeMaaLog)
+        {
+            foreach (var file in GetMaaLogFiles(debugDir))
+                candidateFiles.Add(file);
+        }
+
+        if (options.IncludeGuiLog && Directory.Exists(logsDir))
+        {
+            foreach (var file in Directory.GetFiles(logsDir, "*.log", SearchOption.AllDirectories))
+                candidateFiles.Add(file);
+        }
+
+        if (options.IncludeCustomLog)
+        {
+            foreach (var file in GetCustomLogFiles(baseDirectory))
+                candidateFiles.Add(file);
+        }
+
+        if (Directory.Exists(debugDir))
+        {
+            foreach (var file in Directory.GetFiles(debugDir, "*.*", SearchOption.AllDirectories)
+                         .Where(IsImageFile))
+            {
+                if (!ShouldIncludeImage(file, options))
+                    continue;
+
+                candidateFiles.Add(file);
+            }
+        }
+
+        foreach (var file in candidateFiles)
+        {
+            TryAddEligibleFile(eligibleFiles, baseDirectory, file);
+        }
+
+        return eligibleFiles;
+    }
+
+    private static IEnumerable<string> GetMaaLogFiles(string debugDir)
+    {
+        if (!Directory.Exists(debugDir))
+            return [];
+
+        var allFiles = Directory.GetFiles(debugDir, "*", SearchOption.AllDirectories);
+        var namedMaaLogs = allFiles.Where(file =>
+            Path.GetFileName(file).StartsWith("maa.log", StringComparison.OrdinalIgnoreCase));
+
+        if (namedMaaLogs.Any())
+            return namedMaaLogs;
+
+        return allFiles.Where(file =>
+            Path.GetExtension(file).Equals(".log", StringComparison.OrdinalIgnoreCase)
+            && !Path.GetFileName(file).StartsWith("custom.log", StringComparison.OrdinalIgnoreCase)
+            && !IsPathUnderFolder(file, ExcludedFolder));
+    }
+
+    private static IEnumerable<string> GetCustomLogFiles(string baseDirectory)
+    {
+        if (!Directory.Exists(baseDirectory))
+            return [];
+
+        return Directory.GetFiles(baseDirectory, "*", SearchOption.AllDirectories)
+            .Where(file => Path.GetFileName(file).StartsWith("custom.log", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool ShouldIncludeImage(string file, ExportLogPackageOptions options)
+    {
+        var category = GetImageCategory(file);
+        var fileInfo = new FileInfo(file);
+        var now = DateTime.Now;
+
+        return category switch
+        {
+            ExportImageCategory.OnError => options.IncludeOnErrorImages
+                && IsWithinTimeRange(fileInfo.LastWriteTime, options.OnErrorImageTimeRange, now),
+            ExportImageCategory.Vision => options.IncludeVisionImages
+                && IsWithinTimeRange(fileInfo.LastWriteTime, options.VisionImageTimeRange, now),
+            ExportImageCategory.Other => options.IncludeOtherImages
+                && IsWithinTimeRange(fileInfo.LastWriteTime, options.OtherImageTimeRange, now),
+            _ => false
+        };
+    }
+
+    private static ExportImageCategory GetImageCategory(string file)
+    {
+        if (IsPathUnderFolder(file, "on_error"))
+            return ExportImageCategory.OnError;
+
+        if (IsPathUnderFolder(file, "vision"))
+            return ExportImageCategory.Vision;
+
+        return ExportImageCategory.Other;
+    }
+
+    private static bool IsWithinTimeRange(DateTime lastWriteTime, ExportLogTimeRange range, DateTime now)
+    {
+        var cutoff = range switch
+        {
+            ExportLogTimeRange.All => (DateTime?)null,
+            ExportLogTimeRange.Last24Hours => now.AddDays(-1),
+            ExportLogTimeRange.Last3Days => now.AddDays(-3),
+            ExportLogTimeRange.Last7Days => now.AddDays(-7),
+            _ => null
+        };
+
+        return !cutoff.HasValue || lastWriteTime >= cutoff.Value;
+    }
+
+    private static bool IsImageFile(string file)
+    {
+        return ImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant());
+    }
+
+    private static bool IsPathUnderFolder(string file, string folderName)
+    {
+        var directory = Path.GetDirectoryName(file);
+        if (string.IsNullOrWhiteSpace(directory))
+            return false;
+
+        return directory
+            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Any(segment => segment.Equals(folderName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void TryAddEligibleFile(List<FileInfoEx> eligibleFiles, string baseDirectory, string file)
+    {
+        try
+        {
+            var fileInfo = new FileInfo(file);
+            var relativePath = (Path.GetDirectoryName(file) ?? string.Empty)
+                .Replace(baseDirectory, "")
+                .TrimStart(Path.DirectorySeparatorChar);
+            var isImage = IsImageFile(file);
+            var lineCount = isImage ? 0 : CountLines(file);
+
+            eligibleFiles.Add(new FileInfoEx
+            {
+                FullName = file,
+                RelativePath = relativePath,
+                LineCount = lineCount,
+                IsImage = isImage
+            });
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"处理文件 {file} 时出错: {ex}");
+        }
+    }
+
     // 计算日志文件行数（图片文件不调用此方法）
     private static int CountLines(string filePath)
     {
@@ -293,6 +457,44 @@ public static class FileLogExporter
         using var destination = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None);
         source.CopyTo(destination);
     }
+}
+
+public sealed class ExportLogPackageOptions
+{
+    public bool IncludeMaaLog { get; init; } = true;
+    public bool IncludeGuiLog { get; init; } = true;
+    public bool IncludeCustomLog { get; init; } = true;
+    public bool IncludeOnErrorImages { get; init; } = true;
+    public bool IncludeVisionImages { get; init; }
+    public bool IncludeOtherImages { get; init; } = true;
+    public ExportLogTimeRange OnErrorImageTimeRange { get; init; } = ExportLogTimeRange.All;
+    public ExportLogTimeRange VisionImageTimeRange { get; init; } = ExportLogTimeRange.All;
+    public ExportLogTimeRange OtherImageTimeRange { get; init; } = ExportLogTimeRange.All;
+}
+
+public enum ExportLogTimeRange
+{
+    All,
+    Last24Hours,
+    Last3Days,
+    Last7Days
+}
+
+public enum ExportLogResult
+{
+    Success,
+    Cancelled,
+    NoEligibleFiles,
+    Failed,
+    Blocked,
+    InProgress
+}
+
+public enum ExportImageCategory
+{
+    OnError,
+    Vision,
+    Other
 }
 
 // 扩展文件信息类（支持区分图片/日志，记录行数）

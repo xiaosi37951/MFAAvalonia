@@ -1275,6 +1275,36 @@
     <data name="ExportLog" xml:space="preserve">
         <value>Export Log</value>
     </data>
+    <data name="ExportLogDialogTitle" xml:space="preserve">
+        <value>Package Logs</value>
+    </data>
+    <data name="ExportLogDialogDescription" xml:space="preserve">
+        <value>Choose the log files and image folders to include. Image items can be filtered by time range.</value>
+    </data>
+    <data name="ExportLogDialogLogsSection" xml:space="preserve">
+        <value>Logs</value>
+    </data>
+    <data name="ExportLogDialogImagesSection" xml:space="preserve">
+        <value>Images</value>
+    </data>
+    <data name="ExportLogDialogImagesDescription" xml:space="preserve">
+        <value>The default image time range is all, and each image category can be adjusted separately.</value>
+    </data>
+    <data name="ExportLogDialogOtherImages" xml:space="preserve">
+        <value>Other images</value>
+    </data>
+    <data name="ExportLogDialogStart" xml:space="preserve">
+        <value>Start Export</value>
+    </data>
+    <data name="ExportLogTimeRangeLast24Hours" xml:space="preserve">
+        <value>Last 24 hours</value>
+    </data>
+    <data name="ExportLogTimeRangeLast3Days" xml:space="preserve">
+        <value>Last 3 days</value>
+    </data>
+    <data name="ExportLogTimeRangeLast7Days" xml:space="preserve">
+        <value>Last 7 days</value>
+    </data>
     <data name="ExportLogInProgress" xml:space="preserve">
         <value>Exporting logs, please wait...</value>
     </data>
