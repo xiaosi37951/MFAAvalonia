@@ -6,7 +6,7 @@
     <ControlTheme TargetType="suki:SukiDialogHost" x:Key="SukiDialogHostTheme">
         <Setter Property="Template">
             <ControlTemplate>
-                <Panel>
+                <Panel IsHitTestVisible="False">
                     <Border
                         Background="{DynamicResource SukiDialogBackground}"
                         HorizontalAlignment="Stretch"

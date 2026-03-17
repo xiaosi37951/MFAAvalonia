@@ -225,7 +225,10 @@
     </Design.DataContext>
     <suki:SukiWindow.Hosts>
         <suki:SukiToastHost Manager="{x:Static helper:Instances.ToastManager}" />
-        <suki:SukiDialogHost Manager="{x:Static helper:Instances.DialogManager}" Name="DialogHost" />
+        <suki:SukiDialogHost
+            Margin="6,44,6,6"
+            Manager="{x:Static helper:Instances.DialogManager}"
+            Name="DialogHost" />
     </suki:SukiWindow.Hosts>
     <mobile:RootViewContent />
 
