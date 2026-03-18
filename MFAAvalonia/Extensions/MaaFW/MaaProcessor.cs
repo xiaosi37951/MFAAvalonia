@@ -2800,11 +2800,23 @@ public class MaaProcessor
                                     .Where(s => unprocessedSubOptionNames.Contains(s.Name ?? string.Empty))
                                     .ToList();
 
-                                ProcessOptions(ref taskModels, subOptionsToProcess, unprocessedSubOptionNames, processedOptions);
+                                if (subOptionsToProcess.Count > 0)
+                                {
+                                    ProcessOptions(ref taskModels, subOptionsToProcess, unprocessedSubOptionNames, processedOptions);
+                                }
                             }
-                            else if (unprocessedSubOptionNames.Count > 0)
+
+                            var missingSubOptionNames = unprocessedSubOptionNames
+                                .Where(name => !processedOptions.Contains(name))
+                                .ToList();
+
+                            if (missingSubOptionNames.Count > 0)
                             {
-                                ProcessOptions(ref taskModels, allOptions, unprocessedSubOptionNames, processedOptions);
+                                var defaultSubOptions = CreateDefaultSelectOptions(missingSubOptionNames);
+                                if (defaultSubOptions.Count > 0)
+                                {
+                                    ProcessOptions(ref taskModels, defaultSubOptions, missingSubOptionNames, processedOptions);
+                                }
                             }
                         }
                     }
@@ -2868,16 +2880,46 @@ public class MaaProcessor
                             .Where(s => unprocessedSubOptionNames.Contains(s.Name ?? string.Empty))
                             .ToList();
 
-                        ProcessOptions(ref taskModels, subOptionsToProcess, unprocessedSubOptionNames, processedOptions);
+                        if (subOptionsToProcess.Count > 0)
+                        {
+                            ProcessOptions(ref taskModels, subOptionsToProcess, unprocessedSubOptionNames, processedOptions);
+                        }
                     }
-                    else if (unprocessedSubOptionNames.Count > 0)
+
+                    var missingSubOptionNames = unprocessedSubOptionNames
+                        .Where(name => !processedOptions.Contains(name))
+                        .ToList();
+
+                    if (missingSubOptionNames.Count > 0)
                     {
-                        // 如果没有 SubOptions，使用默认值处理
-                        ProcessOptions(ref taskModels, allOptions, unprocessedSubOptionNames, processedOptions);
+                        var defaultSubOptions = CreateDefaultSelectOptions(missingSubOptionNames);
+                        if (defaultSubOptions.Count > 0)
+                        {
+                            ProcessOptions(ref taskModels, defaultSubOptions, missingSubOptionNames, processedOptions);
+                        }
                     }
                 }
             }
         }
+    }
+
+    private List<MaaInterface.MaaInterfaceSelectOption> CreateDefaultSelectOptions(IEnumerable<string> optionNames)
+    {
+        var result = new List<MaaInterface.MaaInterfaceSelectOption>();
+        foreach (var optionName in optionNames.Distinct())
+        {
+            if (string.IsNullOrWhiteSpace(optionName) || Interface?.Option?.ContainsKey(optionName) != true)
+                continue;
+
+            var option = new MaaInterface.MaaInterfaceSelectOption
+            {
+                Name = optionName
+            };
+            TaskLoader.SetDefaultOptionValue(Interface, option);
+            result.Add(option);
+        }
+
+        return result;
     }
 
     private string SerializeTaskParams(MaaToken taskModels)

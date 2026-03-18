@@ -561,6 +561,47 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         {
             option.SelectedCases ??= new List<string>(io.DefaultCases ?? new List<string>());
         }
+
+        EnsureDefaultSubOptions(@interface, option, io);
+    }
+
+    private static void EnsureDefaultSubOptions(
+        MaaInterface? @interface,
+        MaaInterface.MaaInterfaceSelectOption option,
+        MaaInterface.MaaInterfaceOption interfaceOption)
+    {
+        if (@interface?.Option == null || interfaceOption.Cases == null || interfaceOption.Cases.Count == 0)
+            return;
+
+        option.SubOptions ??= new List<MaaInterface.MaaInterfaceSelectOption>();
+
+        IEnumerable<string> activeSubOptionNames = Array.Empty<string>();
+        if (interfaceOption.IsCheckbox)
+        {
+            var selectedCases = option.SelectedCases ?? new List<string>();
+            activeSubOptionNames = interfaceOption.Cases
+                .Where(caseItem => !string.IsNullOrEmpty(caseItem.Name) && selectedCases.Contains(caseItem.Name!))
+                .SelectMany(caseItem => caseItem.Option ?? Enumerable.Empty<string>());
+        }
+        else if (option.Index is int index && index >= 0 && index < interfaceOption.Cases.Count)
+        {
+            activeSubOptionNames = interfaceOption.Cases[index].Option ?? Enumerable.Empty<string>();
+        }
+
+        foreach (var subOptionName in activeSubOptionNames.Distinct())
+        {
+            var subOption = option.SubOptions.FirstOrDefault(o => o.Name == subOptionName);
+            if (subOption == null)
+            {
+                subOption = new MaaInterface.MaaInterfaceSelectOption
+                {
+                    Name = subOptionName
+                };
+                option.SubOptions.Add(subOption);
+            }
+
+            SetDefaultOptionValue(@interface, subOption);
+        }
     }
 
     private void UpdateViewModels(IList<DragItemViewModel> drags, List<MaaInterface.MaaInterfaceTask> tasks, ObservableCollection<DragItemViewModel> tasksSource)

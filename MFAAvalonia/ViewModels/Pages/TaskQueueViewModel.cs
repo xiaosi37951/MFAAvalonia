@@ -2404,7 +2404,8 @@ public partial class TaskQueueViewModel : ViewModelBase
             Name = opt.Name,
             Index = opt.Index,
             Data = opt.Data != null ? new Dictionary<string, string?>(opt.Data) : null,
-            SubOptions = opt.SubOptions != null ? CloneSubOptions(opt.SubOptions) : null
+            SubOptions = opt.SubOptions != null ? CloneSubOptions(opt.SubOptions) : null,
+            SelectedCases = opt.SelectedCases != null ? new List<string>(opt.SelectedCases) : null
         }).ToList();
     }
 
