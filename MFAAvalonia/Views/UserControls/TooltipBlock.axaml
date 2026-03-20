@@ -36,7 +36,7 @@
                                     BorderThickness="1"
                                     BorderBrush="{DynamicResource SukiControlBorderBrush}"
                                     BoxShadow="0 4 12 0 #40000000"
-                                    Background="{DynamicResource SukiGlassCardBackground}">
+                                    Background="{DynamicResource SukiCardBackground}">
                                 <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                               VerticalScrollBarVisibility="Auto">
                                     <full:MarkdownScrollViewer
