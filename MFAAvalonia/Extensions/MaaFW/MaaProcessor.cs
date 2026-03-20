@@ -3096,9 +3096,15 @@ public class MaaProcessor
 
         try
         {
-            if (ViewModel?.IsConnected == true)
+            if (ViewModel?.IsConnected == true && MaaTasker?.Controller?.IsConnected == true)
             {
                 return;
+            }
+
+            if (ViewModel?.IsConnected == true && MaaTasker?.Controller?.IsConnected != true)
+            {
+                LoggerHelper.Warning("检测到 UI 连接状态与底层控制器状态不一致，准备重新建立连接。");
+                ViewModel.SetConnected(false);
             }
 
             var controllerType = ViewModel?.CurrentController ?? MaaControllerTypes.Adb;
@@ -3167,6 +3173,14 @@ public class MaaProcessor
     {
         if (ViewModel == null)
             return;
+
+        if (InstanceConfiguration.GetValue(ConfigurationKeys.AutoDetectOnConnectionFailed, true) && !delayFingerprintMatching)
+        {
+            ViewModel.TryReadAdbDeviceFromConfig(false, true, true, false);
+            var refreshedAdbDevice = ViewModel.CurrentDevice as AdbDeviceInfo;
+            if (!string.IsNullOrWhiteSpace(refreshedAdbDevice?.AdbSerial))
+                return;
+        }
 
         var currentAdbDevice = ViewModel.CurrentDevice as AdbDeviceInfo;
         var hasValidAdbSerial = !string.IsNullOrWhiteSpace(currentAdbDevice?.AdbSerial);
