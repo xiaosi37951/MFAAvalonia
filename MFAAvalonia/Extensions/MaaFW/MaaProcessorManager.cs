@@ -279,6 +279,39 @@ public sealed class MaaProcessorManager
         }
     }
 
+    private static bool IsBootstrapDefaultInstance(string instanceId)
+    {
+        var filePath = Path.Combine(InstanceConfiguration.InstancesDir, $"{instanceId}.json");
+        if (!File.Exists(filePath))
+            return false;
+
+        try
+        {
+            var token = JToken.Parse(File.ReadAllText(filePath));
+            if (token is not JObject root)
+                return false;
+
+            if (root.TryGetValue(ConfigurationKeys.InstanceName, out var instanceNameToken)
+                && !string.IsNullOrWhiteSpace(instanceNameToken?.ToString()))
+            {
+                return false;
+            }
+
+            if (root.TryGetValue(ConfigurationKeys.TaskItems, out var taskItemsToken)
+                && taskItemsToken.Type == JTokenType.Array
+                && taskItemsToken.HasValues)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public MFAAvalonia.ViewModels.Pages.TaskQueueViewModel? GetViewModel(string instanceId)
     {
         lock (_lock)
@@ -789,23 +822,49 @@ public sealed class MaaProcessorManager
         var scannedIds = ScanAllInstanceFiles();
         LoggerHelper.Info($"[调试] instances 目录中实际存在的实例文件数量: {scannedIds.Count}, ID列表: [{string.Join(", ", scannedIds)}]");
 
-        // 构造函数创建的 "default" 实例的 GetValue 回退迁移可能已写出 default.json，
-        // 若已存在其他真实实例，则删除该临时文件，防止误识别为用户创建的实例
-        var defaultFilePath = Path.Combine(InstanceConfiguration.InstancesDir, "default.json");
-        if (File.Exists(defaultFilePath)
-            && scannedIds.Contains("default")
+        // 构造函数创建的临时 default 实例可能因为大小写不一致被写成 Default.json/default.json。
+        // 若已存在其他真实实例，则删除这些临时文件，防止误识别为用户创建的实例。
+        var tempDefaultIds = scannedIds
+            .Where(id => string.Equals(id, "default", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (tempDefaultIds.Count > 0
             && scannedIds.Any(id => !string.Equals(id, "default", StringComparison.OrdinalIgnoreCase)))
         {
-            LoggerHelper.Info("[调试] 检测到临时 default.json，正在删除...");
+            LoggerHelper.Info($"[调试] 检测到 {tempDefaultIds.Count} 个临时 default 实例文件，正在删除...");
+            foreach (var tempDefaultId in tempDefaultIds)
+            {
+                try
+                {
+                    var tempDefaultPath = Path.Combine(InstanceConfiguration.InstancesDir, $"{tempDefaultId}.json");
+                    if (File.Exists(tempDefaultPath))
+                        File.Delete(tempDefaultPath);
+                }
+                catch
+                {
+                    /* ignore */
+                }
+            }
+
+            scannedIds.RemoveAll(id => string.Equals(id, "default", StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (scannedIds.Count == 1
+            && string.Equals(scannedIds[0], "default", StringComparison.OrdinalIgnoreCase)
+            && IsBootstrapDefaultInstance(scannedIds[0]))
+        {
+            LoggerHelper.Info("[调试] 检测到仅包含临时启动数据的 default 实例文件，按首次启动处理");
             try
             {
-                File.Delete(defaultFilePath);
-                scannedIds.RemoveAll(id => string.Equals(id, "default", StringComparison.OrdinalIgnoreCase));
+                var bootstrapDefaultPath = Path.Combine(InstanceConfiguration.InstancesDir, $"{scannedIds[0]}.json");
+                if (File.Exists(bootstrapDefaultPath))
+                    File.Delete(bootstrapDefaultPath);
             }
             catch
             {
                 /* ignore */
             }
+
+            scannedIds.Clear();
         }
 
         var ids = scannedIds.ToArray();

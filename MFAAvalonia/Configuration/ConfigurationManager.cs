@@ -27,7 +27,7 @@ public static class ConfigurationManager
     }
     public static readonly MFAConfiguration Maa = new("Maa", "maa_option", new Dictionary<string, object>());
     public static MFAConfiguration Current = new("Default", "config", new Dictionary<string, object>());
-    public static InstanceConfiguration CurrentInstance => MaaProcessorManager.Instance?.Current?.InstanceConfiguration ?? new InstanceConfiguration("Default");
+    public static InstanceConfiguration CurrentInstance => MaaProcessorManager.Instance?.Current?.InstanceConfiguration ?? new InstanceConfiguration("default");
 
     public static AvaloniaList<MFAConfiguration> Configs { get; } = LoadConfigurations();
 
