@@ -776,6 +776,15 @@ public partial class MaaInterface
         public List<string>? Controller { get; set; }
 
         /// <summary>
+        /// 可选。指定该资源包下可用的任务列表。
+        /// 数组元素应与 task 配置中的 name 字段对应。
+        /// 若不指定，则表示所有任务均可在该资源包下使用。
+        /// </summary>
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+        [JsonProperty("task")]
+        public List<string>? Task { get; set; }
+
+        /// <summary>
         /// 资源包的全局选项配置。
         /// 这些选项会在任务列表中显示为一个特殊的任务项（位于最前面），
         /// checkbox 默认选中且不可更改。
@@ -987,6 +996,15 @@ public partial class MaaInterface
         [JsonProperty("option")]
         [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
         public List<string>? Option { get; set; }
+
+        /// <summary>
+        /// 可选。指定该控制器下可用的任务列表。
+        /// 数组元素应与 task 配置中的 name 字段对应。
+        /// 若不指定，则表示所有任务均可在该控制器下使用。
+        /// </summary>
+        [JsonProperty("task")]
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+        public List<string>? Task { get; set; }
 
         /// <summary>运行时使用的选项配置（与 MaaInterfaceTask.Option 类似）</summary>
         [JsonIgnore]

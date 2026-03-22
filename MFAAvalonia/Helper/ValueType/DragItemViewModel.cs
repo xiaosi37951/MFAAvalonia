@@ -177,17 +177,10 @@ public partial class DragItemViewModel : ObservableObject
     /// <returns>如果任务支持该资源包或未指定资源限制，则返回 true</returns>
     public bool SupportsResource(string? resourceName)
     {
-        // 如果任务没有指定 resource，则支持所有资源包
-        if (InterfaceItem?.Resource == null || InterfaceItem.Resource.Count == 0)
-            return true;
-
-        // 如果资源名称为空，则显示所有任务
-        if (string.IsNullOrWhiteSpace(resourceName))
-            return true;
-
-        // 检查任务是否支持当前资源包
-        return InterfaceItem.Resource.Any(r =>
-            r.Equals(resourceName, StringComparison.OrdinalIgnoreCase));
+        return MaaInterfaceActivationHelper.IsTaskSupportedByResource(
+            MaaProcessor.Interface,
+            InterfaceItem,
+            resourceName);
     }
 
     /// <summary>
@@ -197,17 +190,10 @@ public partial class DragItemViewModel : ObservableObject
     /// <returns>如果任务支持该控制器或未指定控制器限制，则返回 true</returns>
     public bool SupportsController(string? controllerName)
     {
-        // 如果任务没有指定 controller，则支持所有控制器
-        if (InterfaceItem?.Controller == null || InterfaceItem.Controller.Count == 0)
-            return true;
-
-        // 如果控制器名称为空，则显示所有任务
-        if (string.IsNullOrWhiteSpace(controllerName))
-            return true;
-
-        // 检查任务是否支持当前控制器
-        return InterfaceItem.Controller.Any(c =>
-            c.Equals(controllerName, StringComparison.OrdinalIgnoreCase));
+        return MaaInterfaceActivationHelper.IsTaskSupportedByController(
+            MaaProcessor.Interface,
+            InterfaceItem,
+            controllerName);
     }
 
     /// <summary>
@@ -256,13 +242,9 @@ public partial class DragItemViewModel : ObservableObject
 
     private string? GetCurrentControllerName()
     {
-        var currentControllerType = (OwnerViewModel ?? Instances.InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel)?.CurrentController ?? MaaControllerTypes.None;
-        var controllerTypeKey = currentControllerType.ToJsonKey();
-
-        var controller = MaaProcessor.Interface?.Controller?.Find(c =>
-            c.Type != null && c.Type.Equals(controllerTypeKey, StringComparison.OrdinalIgnoreCase));
-
-        return controller?.Name;
+        var currentControllerType = (OwnerViewModel ?? Instances.InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel)?.CurrentController
+            ?? MaaControllerTypes.None;
+        return MaaInterfaceActivationHelper.ResolveControllerName(MaaProcessor.Interface, currentControllerType);
     }
     
     private void UpdateContent()

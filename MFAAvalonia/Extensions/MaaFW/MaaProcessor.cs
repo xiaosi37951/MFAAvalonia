@@ -2799,6 +2799,8 @@ public class MaaProcessor
         HashSet<string>? processedOptions = null)
     {
         processedOptions ??= new HashSet<string>();
+        var currentControllerName = GetCurrentControllerNameForOptionMerge();
+        var currentResourceName = ViewModel?.CurrentResource;
 
         // 确定要处理的 options
         IEnumerable<MaaInterface.MaaInterfaceSelectOption> optionsToProcess;
@@ -2826,6 +2828,17 @@ public class MaaProcessor
 
             if (Interface?.Option?.TryGetValue(optionName, out var interfaceOption) != true)
                 continue;
+
+            // v2.3.1: 不适用于当前 controller/resource 的 option 视为未激活，
+            // 它自身及其子 option 都不参与 pipeline_override 合并。
+            if (!MaaInterfaceActivationHelper.IsOptionApplicable(
+                    Interface,
+                    interfaceOption,
+                    currentControllerName,
+                    currentResourceName))
+            {
+                continue;
+            }
 
             // 处理 checkbox 类型（多选，任务 10）
             if (interfaceOption.IsCheckbox && interfaceOption.Cases != null)
@@ -3091,6 +3104,13 @@ public class MaaProcessor
             return;
 
         ProcessOptions(ref taskModels, selectOptions);
+    }
+
+    private string? GetCurrentControllerNameForOptionMerge()
+    {
+        var controllerType = ViewModel?.CurrentController ?? MaaControllerTypes.None;
+        return MaaInterfaceActivationHelper.ResolveControllerName(Interface, controllerType)
+               ?? controllerType.ToJsonKey();
     }
 
     private void InitializeConnectionTasksAsync(CancellationToken token)

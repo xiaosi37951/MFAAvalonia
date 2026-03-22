@@ -200,26 +200,15 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
     /// </summary>
     private bool IsOptionApplicable(MaaInterface.MaaInterfaceOption interfaceOption)
     {
-        // 检查 controller 过滤
-        // interfaceOption.Controller 存储的是 interface.json 中 controller[].name 字段（如 "ADB控制器"）
-        // 而非 type 字段（如 "adb"），需要通过 type 查找对应的 name
-        if (interfaceOption.Controller is { Count: > 0 })
-        {
-            var controllerTypeKey = viewModel.CurrentController.ToJsonKey();
-            var controllerConfig = MaaProcessor.Interface?.Controller?.FirstOrDefault(c =>
-                c.Type != null && c.Type.Equals(controllerTypeKey, StringComparison.OrdinalIgnoreCase));
-            var currentControllerName = controllerConfig?.Name ?? controllerTypeKey;
-            if (!interfaceOption.Controller.Any(c => c.Equals(currentControllerName, StringComparison.OrdinalIgnoreCase)))
-                return false;
-        }
-        // 检查 resource 过滤
-        if (interfaceOption.Resource is { Count: > 0 })
-        {
-            var currentResource = viewModel.CurrentResource;
-            if (!interfaceOption.Resource.Any(r => r.Equals(currentResource, StringComparison.OrdinalIgnoreCase)))
-                return false;
-        }
-        return true;
+        var currentControllerName = MaaInterfaceActivationHelper.ResolveControllerName(
+            MaaProcessor.Interface,
+            viewModel.CurrentController) ?? viewModel.CurrentController.ToJsonKey();
+
+        return MaaInterfaceActivationHelper.IsOptionApplicable(
+            MaaProcessor.Interface,
+            interfaceOption,
+            currentControllerName,
+            viewModel.CurrentResource);
     }
 
     /// <summary>
