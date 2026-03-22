@@ -15,6 +15,8 @@ public class ComputerOperationAction : IMaaCustomAction
     {
         try
         {
+            ActionParamHelper.ThrowIfStopping(context);
+
             var operation = "shutdown";
             if (!string.IsNullOrWhiteSpace(args.ActionParam))
             {
@@ -62,6 +64,11 @@ public class ComputerOperationAction : IMaaCustomAction
             }
 
             return true;
+        }
+        catch (MaaStopException)
+        {
+            LoggerHelper.Info("[ComputerOperationAction] 检测到手动停止，已取消执行");
+            return false;
         }
         catch (Exception e)
         {

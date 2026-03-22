@@ -15,6 +15,8 @@ public class WebhookAction : IMaaCustomAction
     {
         try
         {
+            ActionParamHelper.ThrowIfStopping(context);
+
             var url = "";
             var method = "POST";
             var body = "";
@@ -42,16 +44,21 @@ public class WebhookAction : IMaaCustomAction
             HttpResponseMessage response;
             if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
-                response = client.GetAsync(url).GetAwaiter().GetResult();
+                response = ActionParamHelper.SendHttpWithStopCheck(context, token => client.GetAsync(url, token));
             }
             else
             {
                 var content = new StringContent(body, Encoding.UTF8, contentType);
-                response = client.PostAsync(url, content).GetAwaiter().GetResult();
+                response = ActionParamHelper.SendHttpWithStopCheck(context, token => client.PostAsync(url, content, token));
             }
 
             LoggerHelper.Info($"Webhook 响应：status={(int)response.StatusCode} {response.StatusCode}, success={response.IsSuccessStatusCode}");
             return response.IsSuccessStatusCode;
+        }
+        catch (MaaStopException)
+        {
+            LoggerHelper.Info("执行 Webhook 时检测到手动停止，已中止请求");
+            return false;
         }
         catch (Exception e)
         {

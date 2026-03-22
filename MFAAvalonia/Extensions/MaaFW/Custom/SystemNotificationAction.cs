@@ -15,6 +15,8 @@ public class SystemNotificationAction : IMaaCustomAction
         var message = "任务通知";
         try
         {
+            ActionParamHelper.ThrowIfStopping(context);
+
             if (!string.IsNullOrWhiteSpace(args.ActionParam))
             {
                 var json = ActionParamHelper.Parse(args.ActionParam);
@@ -25,6 +27,11 @@ public class SystemNotificationAction : IMaaCustomAction
             LoggerHelper.Info($"发送系统通知：title={title}, messageLength={message.Length}");
             ToastNotification.Show(title, message);
             return true;
+        }
+        catch (MaaStopException)
+        {
+            LoggerHelper.Info("发送系统通知前检测到手动停止，已取消发送");
+            return false;
         }
         catch (Exception e)
         {

@@ -3,7 +3,6 @@ using MaaFramework.Binding.Custom;
 using MFAAvalonia.Helper;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Threading;
 
 namespace MFAAvalonia.Extensions.MaaFW.Custom;
 
@@ -25,11 +24,16 @@ public class CountdownAction : IMaaCustomAction
             LoggerHelper.Info($"[CountdownAction] 倒计时 {seconds} 秒");
             for (int i = seconds; i > 0; i--)
             {
-                Thread.Sleep(1000);
+                ActionParamHelper.SleepWithStopCheck(context, 1000);
             }
 
             LoggerHelper.Info("[CountdownAction] 倒计时结束");
             return true;
+        }
+        catch (MaaStopException)
+        {
+            LoggerHelper.Info("[CountdownAction] 检测到手动停止，已中止倒计时");
+            return false;
         }
         catch (Exception e)
         {

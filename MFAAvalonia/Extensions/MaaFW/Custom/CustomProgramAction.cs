@@ -3,6 +3,7 @@ using MaaFramework.Binding.Custom;
 using MFAAvalonia.Helper;
 using System;
 using System.Diagnostics;
+using System.Threading;
 
 namespace MFAAvalonia.Extensions.MaaFW.Custom;
 
@@ -43,11 +44,21 @@ public class CustomProgramAction : IMaaCustomAction
             var process = Process.Start(psi);
             if (process != null && waitForExit)
             {
-                process.WaitForExit();
+                while (!process.HasExited)
+                {
+                    ActionParamHelper.ThrowIfStopping(context);
+                    process.WaitForExit(200);
+                }
+
                 LoggerHelper.Info($"[CustomProgramAction] 进程已退出, ExitCode: {process.ExitCode}");
             }
 
             return true;
+        }
+        catch (MaaStopException)
+        {
+            LoggerHelper.Info("[CustomProgramAction] 检测到手动停止，已中止等待进程退出");
+            return false;
         }
         catch (Exception e)
         {

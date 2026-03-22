@@ -15,6 +15,8 @@ public class KillProcessAction : IMaaCustomAction
     {
         try
         {
+            ActionParamHelper.ThrowIfStopping(context);
+
             var processName = string.Empty;
             var killSelfProcess = false;
             if (!string.IsNullOrWhiteSpace(args.ActionParam))
@@ -45,6 +47,7 @@ public class KillProcessAction : IMaaCustomAction
             {
                 try
                 {
+                    ActionParamHelper.ThrowIfStopping(context);
                     proc.Kill();
                     proc.WaitForExit(5000);
                     LoggerHelper.Info($"[KillProcessAction] 已结束: {proc.ProcessName} (PID: {proc.Id})");
@@ -60,6 +63,11 @@ public class KillProcessAction : IMaaCustomAction
             }
 
             return true;
+        }
+        catch (MaaStopException)
+        {
+            LoggerHelper.Info("[KillProcessAction] 检测到手动停止，已取消执行");
+            return false;
         }
         catch (Exception e)
         {

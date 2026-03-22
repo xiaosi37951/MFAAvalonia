@@ -1,5 +1,10 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using MaaFramework.Binding;
+using System;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MFAAvalonia.Extensions.MaaFW.Custom;
 
@@ -36,5 +41,74 @@ public static class ActionParamHelper
         }
 
         return new JObject();
+    }
+
+    public static void ThrowIfStopping(IMaaContext context)
+    {
+        if (context.Tasker.IsStopping)
+        {
+            throw new MaaStopException();
+        }
+    }
+
+    public static void SleepWithStopCheck(IMaaContext context, int totalMilliseconds, int sliceMilliseconds = 200)
+    {
+        if (totalMilliseconds <= 0)
+        {
+            ThrowIfStopping(context);
+            return;
+        }
+
+        var remaining = totalMilliseconds;
+        while (remaining > 0)
+        {
+            ThrowIfStopping(context);
+
+            var sleep = Math.Min(remaining, sliceMilliseconds);
+            Thread.Sleep(sleep);
+            remaining -= sleep;
+        }
+    }
+
+    public static HttpResponseMessage SendHttpWithStopCheck(
+        IMaaContext context,
+        Func<CancellationToken, Task<HttpResponseMessage>> sendAsync)
+    {
+        ThrowIfStopping(context);
+
+        using var cts = new CancellationTokenSource();
+        using var monitor = Task.Run(async () =>
+        {
+            try
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    if (context.Tasker.IsStopping)
+                    {
+                        cts.Cancel();
+                        break;
+                    }
+
+                    await Task.Delay(200, cts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+        });
+
+        try
+        {
+            return sendAsync(cts.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException) when (context.Tasker.IsStopping)
+        {
+            throw new MaaStopException();
+        }
+        catch (TaskCanceledException) when (context.Tasker.IsStopping)
+        {
+            throw new MaaStopException();
+        }
     }
 }
