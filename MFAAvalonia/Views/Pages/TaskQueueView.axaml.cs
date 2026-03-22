@@ -1821,7 +1821,8 @@ public partial class TaskQueueView : UserControl
         // 优先使用 Description
         if (!string.IsNullOrWhiteSpace(description))
         {
-            var result = description.ResolveContentAsync(transform: false).GetAwaiter().GetResult();
+            // 先按 interface 协议解析 $i18n、路径和 URL，确保 task.description 与其它 desc 行为一致。
+            var result = description.ResolveContentAsync().GetAwaiter().GetResult();
             // 如果结果与输入相同（未被解析），尝试通过 resx i18n 系统解析（支持特殊任务描述等）
             if (result == description)
             {
