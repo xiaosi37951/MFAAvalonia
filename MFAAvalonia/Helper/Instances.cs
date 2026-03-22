@@ -473,7 +473,7 @@ public static partial class Instances
                     theme.ChangeBaseTheme(gui.BaseTheme);
                     theme.ChangeColorTheme(gui.CurrentColorTheme);
 
-                    var language = ConfigurationManager.Current.GetValue(ConfigurationKeys.CurrentLanguage, LanguageHelper.SupportedLanguages[0].Key, ["zh-CN", "zh-Hant", "en-US"]);
+                    var language = LanguageHelper.CurrentLanguage;
                     gui.CurrentLanguage = language;
                     LanguageHelper.ChangeLanguage(language);
                 }
