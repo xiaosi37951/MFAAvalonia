@@ -15,25 +15,8 @@ public partial class AddTaskDialogView : UserControl
 
     private void SearchBar_OnSearchStarted(object sender, RoutedEventArgs e)
     {
-        string key = SearchBar.Text ?? "";
-
         if (DataContext is AddTaskDialogViewModel vm)
-        {
-            vm.Items.Clear();
-            if (string.IsNullOrEmpty(key))
-            {
-                vm.Items.AddRange(vm.Sources);
-            }
-            else
-            {
-                key = key.ToLower();
-                foreach (var item in vm.Sources)
-                {
-                    if (item.Name.ToLower().Contains(key))
-                        vm.Items.Add(item);
-                }
-            }
-        }
+            vm.ApplyFilter(SearchBar.Text ?? string.Empty);
     }
 
     private void TaskItem_OnPointerPressed(object? sender, PointerPressedEventArgs e)

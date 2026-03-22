@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Helper.ValueType;
+using System.Collections.Generic;
 
 namespace MFAAvalonia.ViewModels.UsersControls.Settings;
 
@@ -24,6 +25,8 @@ public partial class AddTaskItemViewModel : ObservableObject
 
     public string SpecialIcon { get; set; } = "";
 
+    public List<string> GroupNames { get; set; } = [];
+
     public AddTaskItemViewModel()
     {
     }
@@ -34,6 +37,7 @@ public partial class AddTaskItemViewModel : ObservableObject
         Name = source.Name;
         HasIcon = source.HasIcon;
         Icon = source.ResolvedIcon;
+        GroupNames = source.InterfaceItem?.Group?.FindAll(g => !string.IsNullOrWhiteSpace(g)) ?? [];
     }
 
     partial void OnAddCountChanged(int value)

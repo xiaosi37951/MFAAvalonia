@@ -654,6 +654,14 @@ public partial class MaaInterface
         [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("controller")]
         public List<string>? Controller;
 
+        /// <summary>
+        /// 可选。指定该任务所属的分组列表。
+        /// 数组元素应与顶层 group 配置中的 name 字段对应。
+        /// 若不指定，则表示该任务不属于任何显式分组。
+        /// </summary>
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("group")]
+        public List<string>? Group;
+
         /// <summary>文档说明（旧版兼容）</summary>
         [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("doc")]
         public List<string>? Document;
@@ -738,6 +746,7 @@ public partial class MaaInterface
              if (!string.IsNullOrEmpty(other.Icon)) Icon = other.Icon;
              if (other.Resource != null) Resource = other.Resource;
              if (other.Controller != null) Controller = other.Controller;
+             if (other.Group != null) Group = other.Group;
              if (other.Document != null) Document = other.Document;
              if (other.Repeatable != null) Repeatable = other.Repeatable;
              if (other.RepeatCount != null) RepeatCount = other.RepeatCount;
@@ -1208,6 +1217,79 @@ public partial class MaaInterface
         }
     }
 
+    public partial class MaaInterfaceTaskGroup : ObservableObject, IDisposable
+    {
+        [JsonProperty("name")]
+        public string? Name { get; set; }
+
+        [JsonProperty("label")]
+        public string? Label { get; set; }
+
+        [JsonProperty("description")]
+        public string? Description { get; set; }
+
+        /// <summary>分组图标文件路径，相对于项目根目录。支持国际化（以$开头）</summary>
+        [JsonProperty("icon")]
+        public string? Icon { get; set; }
+
+        [JsonProperty("default_expand")]
+        public bool? DefaultExpand { get; set; } = true;
+
+        [ObservableProperty] [JsonIgnore] private string _displayName = string.Empty;
+
+        [ObservableProperty] [JsonIgnore] private bool _hasDescription;
+
+        [ObservableProperty] [JsonIgnore] private string _displayDescription = string.Empty;
+
+        [ObservableProperty] [JsonIgnore] private string? _resolvedIcon;
+
+        [ObservableProperty] [JsonIgnore] private bool _hasIcon;
+
+        public void InitializeDisplayName()
+        {
+            UpdateDisplayName();
+            LanguageHelper.LanguageChanged += OnLanguageChanged;
+        }
+
+        private void OnLanguageChanged(object? sender, LanguageHelper.LanguageEventArgs e)
+        {
+            UpdateDisplayName();
+        }
+
+        private void UpdateDisplayName()
+        {
+            DisplayName = LanguageHelper.GetLocalizedDisplayName(Label, Name ?? string.Empty);
+            try
+            {
+                DisplayDescription = LanguageHelper.GetLocalizedString(Description.ResolveContentAsync().Result);
+                HasDescription = !string.IsNullOrWhiteSpace(DisplayDescription);
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Warning($"Failed to resolve group description for '{Name}': {ex.Message}");
+                DisplayDescription = string.Empty;
+                HasDescription = false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Icon))
+            {
+                var iconValue = LanguageHelper.GetLocalizedString(Icon);
+                ResolvedIcon = ReplacePlaceholder(iconValue, MaaProcessor.ResourceBase, true);
+                HasIcon = !string.IsNullOrWhiteSpace(ResolvedIcon);
+            }
+            else
+            {
+                ResolvedIcon = null;
+                HasIcon = false;
+            }
+        }
+
+        public void Dispose()
+        {
+            LanguageHelper.LanguageChanged -= OnLanguageChanged;
+        }
+    }
+
     [JsonProperty("interface_version")]
     public int? InterfaceVersion { get; set; }
 
@@ -1271,6 +1353,8 @@ public partial class MaaInterface
     public List<MaaResourceController>? Controller { get; set; }
     [JsonProperty("resource")]
     public List<MaaInterfaceResource>? Resource { get; set; }
+    [JsonProperty("group")]
+    public List<MaaInterfaceTaskGroup>? Group { get; set; }
     [JsonProperty("task")]
     public List<MaaInterfaceTask>? Task { get; set; }
 
@@ -1487,6 +1571,7 @@ public partial class MaaInterface
 
         Controller = MergeLists(Controller, other.Controller, c => c.Name);
         Resource = MergeLists(Resource, other.Resource, r => r.Name);
+        Group = MergeLists(Group, other.Group, g => g.Name);
         Task = MergeTasks(Task, other.Task);
         Preset = MergeLists(Preset, other.Preset, p => p.Name);
         if (other.GlobalOption is { Count: > 0 }) GlobalOption = other.GlobalOption;

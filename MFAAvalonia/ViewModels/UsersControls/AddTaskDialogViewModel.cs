@@ -40,15 +40,21 @@ public partial class AddTaskDialogViewModel : ViewModelBase
 
     public List<AddTaskItemViewModel> Sources { get; set; }
 
+    public ObservableCollection<AddTaskItemGroupViewModel> Groups { get; set; } = [];
+
     public ObservableCollection<AddTaskItemViewModel> SpecialTasks { get; set; }
 
     public ISukiDialog Dialog { get; set; }
+
+    public bool HasGroups => Groups.Count > 0;
+
+    public bool HasUngroupedItems => Items.Count > 0;
 
     public AddTaskDialogViewModel(ISukiDialog dialog, ICollection<DragItemViewModel> sources)
     {
         Dialog = dialog;
         Sources = sources.Select(s => new AddTaskItemViewModel(s)).ToList();
-        _items = new ObservableCollection<AddTaskItemViewModel>(Sources);
+        _items = [];
 
         SpecialTasks = new ObservableCollection<AddTaskItemViewModel>
         {
@@ -60,6 +66,8 @@ public partial class AddTaskDialogViewModel : ViewModelBase
             new() { Name = LangKeys.SpecialTask_ComputerOperation.ToLocalization(), IsSpecialTask = true, SpecialActionName = "ComputerOperationAction", SpecialIcon = "⚡" },
             new() { Name = LangKeys.SpecialTask_Webhook.ToLocalization(), IsSpecialTask = true, SpecialActionName = "WebhookAction", SpecialIcon = "🔔" },
         };
+
+        ApplyFilter(string.Empty);
     }
 
     [RelayCommand]
@@ -179,6 +187,105 @@ public partial class AddTaskDialogViewModel : ViewModelBase
     void Cancel()
     {
         Dialog.Dismiss();
+    }
+
+    public void ApplyFilter(string key)
+    {
+        var normalizedKey = key?.Trim().ToLowerInvariant() ?? string.Empty;
+        var filteredSources = string.IsNullOrWhiteSpace(normalizedKey)
+            ? Sources
+            : Sources.Where(item => item.Name.ToLowerInvariant().Contains(normalizedKey)).ToList();
+
+        var groups = BuildGroups(filteredSources);
+        Groups.Clear();
+        foreach (var group in groups)
+            Groups.Add(group);
+
+        Items.Clear();
+        foreach (var item in filteredSources.Where(item => item.GroupNames.Count == 0))
+            Items.Add(item);
+
+        OnPropertyChanged(nameof(HasGroups));
+        OnPropertyChanged(nameof(HasUngroupedItems));
+    }
+
+    private static List<AddTaskItemGroupViewModel> BuildGroups(IEnumerable<AddTaskItemViewModel> items)
+    {
+        var filteredItems = items.ToList();
+        var interfaceGroups = MaaProcessor.Interface?.Group ?? [];
+        var groupDefinitions = new Dictionary<string, AddTaskItemGroupViewModel>();
+
+        foreach (var interfaceGroup in interfaceGroups.Where(g => !string.IsNullOrWhiteSpace(g.Name)))
+        {
+            var description = ResolveGroupDescription(interfaceGroup.Description);
+            var icon = ResolveGroupIcon(interfaceGroup.Icon);
+            groupDefinitions[interfaceGroup.Name!] = new AddTaskItemGroupViewModel
+            {
+                Name = interfaceGroup.Name!,
+                Label = LanguageHelper.GetLocalizedDisplayName(interfaceGroup.Label, interfaceGroup.Name!),
+                Description = description,
+                HasDescription = !string.IsNullOrWhiteSpace(description),
+                Icon = icon,
+                HasIcon = !string.IsNullOrWhiteSpace(icon),
+                IsExpanded = interfaceGroup.DefaultExpand ?? true,
+            };
+        }
+
+        foreach (var item in filteredItems.Where(i => i.GroupNames.Count > 0))
+        {
+            foreach (var groupName in item.GroupNames.Where(g => !string.IsNullOrWhiteSpace(g)).Distinct())
+            {
+                if (!groupDefinitions.TryGetValue(groupName, out var group))
+                {
+                    group = new AddTaskItemGroupViewModel
+                    {
+                        Name = groupName,
+                        Label = groupName,
+                        IsExpanded = true,
+                    };
+                    groupDefinitions[groupName] = group;
+                }
+
+                group.Items.Add(item);
+            }
+        }
+
+        var orderedGroups = new List<AddTaskItemGroupViewModel>();
+        foreach (var interfaceGroup in interfaceGroups.Where(g => !string.IsNullOrWhiteSpace(g.Name)))
+        {
+            if (groupDefinitions.TryGetValue(interfaceGroup.Name!, out var group) && group.Items.Count > 0)
+                orderedGroups.Add(group);
+        }
+
+        orderedGroups.AddRange(groupDefinitions.Values
+            .Where(g => g.Items.Count > 0 && orderedGroups.All(existing => existing.Name != g.Name))
+            .OrderBy(g => g.Label));
+
+        return orderedGroups;
+    }
+
+    private static string ResolveGroupDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return string.Empty;
+
+        try
+        {
+            return LanguageHelper.GetLocalizedString(description.ResolveContentAsync().Result);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string ResolveGroupIcon(string? icon)
+    {
+        if (string.IsNullOrWhiteSpace(icon))
+            return string.Empty;
+
+        var iconValue = LanguageHelper.GetLocalizedString(icon);
+        return MaaInterface.ReplacePlaceholder(iconValue, MaaProcessor.ResourceBase, true) ?? string.Empty;
     }
 }
 

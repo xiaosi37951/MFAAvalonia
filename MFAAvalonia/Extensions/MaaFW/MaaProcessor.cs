@@ -1993,9 +1993,10 @@ public class MaaProcessor
                 {
                     var imported = LoadMaaInterfaceRecursive(resolvedPath, loadedPaths);
 
-                    // 仅支持导入 task、option 和 preset 字段（任务 16）
+                    // 仅支持导入与任务配置直接相关的字段
                     var filteredImport = new MaaInterface
                     {
+                        Group = imported.Group,
                         Task = imported.Task,
                         Option = imported.Option,
                         Preset = imported.Preset
