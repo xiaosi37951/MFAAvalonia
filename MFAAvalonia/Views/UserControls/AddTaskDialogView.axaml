@@ -40,18 +40,40 @@
         <Style Selector="ToggleButton.groupHeader">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="Padding" Value="14,12,14,12" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid ColumnDefinitions="*,24"
+                              ColumnSpacing="8"
+                              HorizontalAlignment="Stretch">
+                            <ContentPresenter Grid.Column="0"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            <PathIcon Grid.Column="1"
+                                      Name="PART_ExpandChevron"
+                                      Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z"
+                                      Width="10"
+                                      Height="6"
+                                      Foreground="{DynamicResource SukiLowText}"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
         </Style>
         <Style Selector="ToggleButton.groupHeader:pointerover">
             <Setter Property="Background" Value="#063B82F6" />
         </Style>
-        <Style Selector="PathIcon.groupChevron">
+        <Style Selector="ToggleButton.groupHeader /template/ PathIcon#PART_ExpandChevron">
             <Setter Property="RenderTransform" Value="rotate(0deg)" />
-        </Style>
-        <Style Selector="PathIcon.groupChevron">
             <Setter Property="Transitions">
                 <Transitions>
                     <TransformOperationsTransition Property="RenderTransform"
@@ -59,7 +81,7 @@
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="ToggleButton.groupHeader:checked PathIcon.groupChevron">
+        <Style Selector="ToggleButton.groupHeader:checked /template/ PathIcon#PART_ExpandChevron">
             <Setter Property="RenderTransform" Value="rotate(180deg)" />
         </Style>
     </UserControl.Styles>
@@ -147,7 +169,7 @@
                                 <StackPanel Spacing="0">
                                     <ToggleButton IsChecked="{Binding IsExpanded}"
                                                   Classes="groupHeader">
-                                        <Grid ColumnDefinitions="Auto,*,Auto"
+                                        <Grid ColumnDefinitions="Auto,*"
                                               ColumnSpacing="10"
                                               HorizontalAlignment="Stretch">
                                             <Border Grid.Column="0"
@@ -177,15 +199,6 @@
                                                                        TooltipMaxWidth="320"
                                                                        VerticalAlignment="Center" />
                                             </StackPanel>
-
-                                            <PathIcon Grid.Column="2"
-                                                      Classes="groupChevron"
-                                                      Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z"
-                                                      Width="10"
-                                                      Height="6"
-                                                      Foreground="{DynamicResource SukiLowText}"
-                                                      HorizontalAlignment="Right"
-                                                      VerticalAlignment="Center" />
                                         </Grid>
                                     </ToggleButton>
 
