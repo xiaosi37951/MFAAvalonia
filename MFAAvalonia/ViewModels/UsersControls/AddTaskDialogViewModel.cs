@@ -8,14 +8,18 @@ using MFAAvalonia.Helper.ValueType;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SukiUI.Dialogs;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace MFAAvalonia.ViewModels.UsersControls.Settings;
 
-public partial class AddTaskDialogViewModel : ViewModelBase
+public partial class AddTaskDialogViewModel : ViewModelBase, IDisposable
 {
+    private const string CommonGroupName = "__common__";
+    private string _currentSearchKey = string.Empty;
+
     /// <summary>
     /// 已知的特殊任务 Action 名称集合，用于判断一个任务是否为特殊任务
     /// </summary>
@@ -67,6 +71,7 @@ public partial class AddTaskDialogViewModel : ViewModelBase
             new() { Name = LangKeys.SpecialTask_Webhook.ToLocalization(), IsSpecialTask = true, SpecialActionName = "WebhookAction", SpecialIcon = "🔔" },
         };
 
+        LanguageHelper.LanguageChanged += OnLanguageChanged;
         ApplyFilter(string.Empty);
     }
 
@@ -191,6 +196,7 @@ public partial class AddTaskDialogViewModel : ViewModelBase
 
     public void ApplyFilter(string key)
     {
+        _currentSearchKey = key ?? string.Empty;
         var normalizedKey = key?.Trim().ToLowerInvariant() ?? string.Empty;
         var filteredSources = string.IsNullOrWhiteSpace(normalizedKey)
             ? Sources
@@ -202,8 +208,6 @@ public partial class AddTaskDialogViewModel : ViewModelBase
             Groups.Add(group);
 
         Items.Clear();
-        foreach (var item in filteredSources.Where(item => item.GroupNames.Count == 0))
-            Items.Add(item);
 
         OnPropertyChanged(nameof(HasGroups));
         OnPropertyChanged(nameof(HasUngroupedItems));
@@ -250,6 +254,24 @@ public partial class AddTaskDialogViewModel : ViewModelBase
             }
         }
 
+        var ungroupedItems = filteredItems.Where(i => i.GroupNames.Count == 0).ToList();
+        if (ungroupedItems.Count > 0)
+        {
+            if (!groupDefinitions.TryGetValue(CommonGroupName, out var commonGroup))
+            {
+                commonGroup = new AddTaskItemGroupViewModel
+                {
+                    Name = CommonGroupName,
+                    Label = LangKeys.CommonSetting.ToLocalization(),
+                    IsExpanded = true,
+                };
+                groupDefinitions[CommonGroupName] = commonGroup;
+            }
+
+            foreach (var item in ungroupedItems)
+                commonGroup.Items.Add(item);
+        }
+
         var orderedGroups = new List<AddTaskItemGroupViewModel>();
         foreach (var interfaceGroup in interfaceGroups.Where(g => !string.IsNullOrWhiteSpace(g.Name)))
         {
@@ -286,6 +308,16 @@ public partial class AddTaskDialogViewModel : ViewModelBase
 
         var iconValue = LanguageHelper.GetLocalizedString(icon);
         return MaaInterface.ReplacePlaceholder(iconValue, MaaProcessor.ResourceBase, true) ?? string.Empty;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        ApplyFilter(_currentSearchKey);
+    }
+
+    public void Dispose()
+    {
+        LanguageHelper.LanguageChanged -= OnLanguageChanged;
     }
 }
 
