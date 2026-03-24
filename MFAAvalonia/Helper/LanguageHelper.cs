@@ -81,7 +81,10 @@ public static class LanguageHelper
     {
         LoggerHelper.Info("开始初始化语言管理器。");
         var plugin = new MFAResxLangPlugin();
-        var defaultCulture = CultureInfo.CurrentUICulture;
+        var configuredLanguage = LoadConfiguredLanguage();
+        var defaultCulture = Cultures.TryGetValue(configuredLanguage, out var configuredCulture)
+            ? configuredCulture
+            : Cultures[configuredLanguage] = new CultureInfo(configuredLanguage);
         I18nManager.Instance.Register(
             plugin, // 格式插件
             defaultCulture: defaultCulture, // 默认语言
@@ -92,6 +95,7 @@ public static class LanguageHelper
             plugin.Load(defaultCulture);
         }
         PersistNormalizedCurrentLanguage();
+        ChangeLanguage(_currentLanguage);
         LoadLanguages();
     }
 

@@ -2394,16 +2394,21 @@ public partial class TaskQueueViewModel : ViewModelBase
         controller.SelectOptions = controller.Option.Select(optionName =>
         {
             if (existingDict.TryGetValue(optionName, out var existing))
+            {
+                TaskLoader.SetDefaultOptionValue(MaaProcessor.Interface, existing);
                 return existing;
+            }
             if (savedDict?.TryGetValue(optionName, out var saved) == true)
             {
-                return new MaaInterface.MaaInterfaceSelectOption
+                var savedOption = new MaaInterface.MaaInterfaceSelectOption
                 {
                     Name = saved.Name,
                     Index = saved.Index,
                     Data = saved.Data != null ? new Dictionary<string, string?>(saved.Data) : null,
                     SelectedCases = saved.SelectedCases != null ? new List<string>(saved.SelectedCases) : null,
                 };
+                TaskLoader.SetDefaultOptionValue(MaaProcessor.Interface, savedOption);
+                return savedOption;
             }
             var opt = new MaaInterface.MaaInterfaceSelectOption { Name = optionName };
             TaskLoader.SetDefaultOptionValue(MaaProcessor.Interface, opt);

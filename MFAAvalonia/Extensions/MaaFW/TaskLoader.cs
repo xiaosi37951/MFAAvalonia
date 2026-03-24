@@ -170,16 +170,21 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         maaInterface.GlobalSelectOptions = maaInterface.GlobalOption.Select(optionName =>
         {
             if (existingDict.TryGetValue(optionName, out var existing))
+            {
+                SetDefaultOptionValue(maaInterface, existing);
                 return existing;
+            }
             if (savedDict.TryGetValue(optionName, out var saved))
             {
-                return new MaaInterface.MaaInterfaceSelectOption
+                var savedOption = new MaaInterface.MaaInterfaceSelectOption
                 {
                     Name = saved.Name,
                     Index = saved.Index,
                     Data = saved.Data != null ? new Dictionary<string, string?>(saved.Data) : null,
                     SelectedCases = saved.SelectedCases != null ? new List<string>(saved.SelectedCases) : null,
                 };
+                SetDefaultOptionValue(maaInterface, savedOption);
+                return savedOption;
             }
             var opt = new MaaInterface.MaaInterfaceSelectOption { Name = optionName };
             SetDefaultOptionValue(maaInterface, opt);
@@ -245,6 +250,7 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
                 // 优先使用已有的值（保留运行时的修改）
                 if (existingDict.TryGetValue(optionName, out var existingOpt))
                 {
+                    SetDefaultOptionValue(maaInterface, existingOpt);
                     return existingOpt;
                 }
 
@@ -261,6 +267,7 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
                         SubOptions = savedOpt.SubOptions != null ? CloneSubOptions(savedOpt.SubOptions) : null,
                         SelectedCases = savedOpt.SelectedCases != null ? new List<string>(savedOpt.SelectedCases) : null,
                     };
+                    SetDefaultOptionValue(maaInterface, clonedOpt);
                     return clonedOpt;
                 }
                 // 最后创建新的并设置默认值
@@ -506,6 +513,9 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
                             existing.Index = io.Cases.Count - 1;
                         }
                     }
+                    // 为旧配置补齐隐式默认值和默认子树，避免“界面默认显示第 0 项，
+                    // 但模型里的 Index/SubOptions 实际还是空”的情况。
+                    SetDefaultOptionValue(maaInterface, existing);
                     newOptions.Add(existing);
                 }
                 else
@@ -548,7 +558,16 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
     {
         if (!(@interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var io) ?? false)) return;
         var defaultIndex = io.Cases?.FindIndex(c => c.Name == io.DefaultCase) ?? -1;
-        if (defaultIndex != -1) option.Index = defaultIndex;
+        if (defaultIndex != -1)
+        {
+            option.Index = defaultIndex;
+        }
+        else if (!io.IsInput && !io.IsCheckbox && io.Cases is { Count: > 0 } && option.Index == null)
+        {
+            // 若未显式声明 default_case，UI 会按第 0 个 case 展示，
+            // 数据层也需要同步落成 0，执行合并时才能命中默认分支。
+            option.Index = 0;
+        }
         if (io.IsInput && io.Inputs != null)
         {
             option.Data ??= new Dictionary<string, string?>();
@@ -742,16 +761,21 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         controller.SelectOptions = controller.Option.Select(optionName =>
         {
             if (existingDict.TryGetValue(optionName, out var existing))
+            {
+                SetDefaultOptionValue(maaInterface, existing);
                 return existing;
+            }
             if (savedDict?.TryGetValue(optionName, out var saved) == true)
             {
-                return new MaaInterface.MaaInterfaceSelectOption
+                var savedOption = new MaaInterface.MaaInterfaceSelectOption
                 {
                     Name = saved.Name,
                     Index = saved.Index,
                     Data = saved.Data != null ? new Dictionary<string, string?>(saved.Data) : null,
                     SelectedCases = saved.SelectedCases != null ? new List<string>(saved.SelectedCases) : null,
                 };
+                SetDefaultOptionValue(maaInterface, savedOption);
+                return savedOption;
             }
             var opt = new MaaInterface.MaaInterfaceSelectOption { Name = optionName };
             SetDefaultOptionValue(maaInterface, opt);
