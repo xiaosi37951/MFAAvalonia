@@ -920,10 +920,7 @@ public static class VersionChecker
                 restartExecutablePath = Path.Combine(AppPaths.InstallRoot, packageExecutableRelativePath);
                 LoggerHelper.Info($"检测到更新包中的主程序入口：源文件={packageExecutablePath}，重启目标={restartExecutablePath}");
 
-                if (!string.Equals(
-                        Path.GetFullPath(restartExecutablePath),
-                        Path.GetFullPath(exeName),
-                        StringComparison.OrdinalIgnoreCase))
+                if (HasExecutableFileNameChanged(exeName, restartExecutablePath))
                 {
                     LoggerHelper.Info($"检测到主程序文件名变更，将在更新完成后尝试把旧主程序改名为 backupMFA：旧文件={exeName}，新文件={restartExecutablePath}");
                 }
@@ -940,10 +937,7 @@ public static class VersionChecker
                 continueOnCopyFailure: true,
                 skipRunningExecutable: true);
 
-            if (!string.Equals(
-                    Path.GetFullPath(restartExecutablePath),
-                    Path.GetFullPath(exeName),
-                    StringComparison.OrdinalIgnoreCase))
+            if (HasExecutableFileNameChanged(exeName, restartExecutablePath))
             {
                 TryRenameExecutableToBackup(exeName);
             }
@@ -1168,7 +1162,22 @@ public static class VersionChecker
                     Path.GetFullPath(currentProcessPath),
                     StringComparison.OrdinalIgnoreCase))
             {
-                LoggerHelper.Warning($"已跳过当前正在运行的主程序文件，等待下次手动清理旧文件：文件={targetFile}");
+                var replaced = await TryReplaceRunningExecutableAsync(item.SourceFile, targetFile, cancellationToken);
+                if (!replaced)
+                {
+                    LoggerHelper.Warning($"替换当前正在运行的同名主程序失败，已跳过：文件={targetFile}");
+                    progressCounter.Current++;
+                    DispatcherHelper.PostOnMainThread(() =>
+                    {
+                        if (progressBar == null || progressCounter.Total <= 0)
+                            return;
+
+                        var percentage = Math.Round((progressCounter.Current * 100.0) / progressCounter.Total, 1);
+                        progressBar.Value = Math.Min(percentage, 100);
+                    });
+                    continue;
+                }
+
                 progressCounter.Current++;
                 DispatcherHelper.PostOnMainThread(() =>
                 {
@@ -1415,6 +1424,12 @@ public static class VersionChecker
 
     static void DeleteFileWithBackup(string filePath)
     {
+        if (IsCurrentProcessExecutable(filePath))
+        {
+            LoggerHelper.Warning($"已阻止将当前正在运行的主程序文件改名为 backupMFA：文件={filePath}");
+            return;
+        }
+
         try
         {
             File.Delete(filePath);
@@ -2955,6 +2970,12 @@ public static class VersionChecker
         if (string.IsNullOrWhiteSpace(executablePath))
             return;
 
+        if (IsCurrentProcessExecutable(executablePath))
+        {
+            LoggerHelper.Warning($"已阻止将当前正在运行的主程序文件改名为 backupMFA：文件={executablePath}");
+            return;
+        }
+
         try
         {
             var fullExecutablePath = Path.GetFullPath(executablePath);
@@ -2986,6 +3007,94 @@ public static class VersionChecker
         catch (Exception ex)
         {
             LoggerHelper.Warning($"将旧主程序改名为 backupMFA 失败：文件={executablePath}，原因={ex.Message}");
+        }
+    }
+
+    private static string GetBackupMfaPath(string filePath)
+    {
+        int index = 0;
+        string currentDate = DateTime.Now.ToString("yyyyMMddHHmm");
+        string backupFilePath = $"{filePath}.{currentDate}.{index}.backupMFA";
+
+        while (File.Exists(backupFilePath))
+        {
+            index++;
+            backupFilePath = $"{filePath}.{currentDate}.{index}.backupMFA";
+        }
+
+        return backupFilePath;
+    }
+
+    private static async Task<bool> TryReplaceRunningExecutableAsync(string sourceFile, string targetFile, CancellationToken cancellationToken)
+    {
+        var maxRetries = 5;
+        for (var i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                await Task.Run(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var backupPath = GetBackupMfaPath(targetFile);
+                    File.SetAttributes(targetFile, FileAttributes.Normal);
+                    File.Move(targetFile, backupPath);
+                    LoggerHelper.Info($"当前运行中的旧主程序已改名为 backupMFA：源文件={targetFile}，备份文件={backupPath}");
+
+                    File.Copy(sourceFile, targetFile, overwrite: false);
+                    File.SetAttributes(targetFile, FileAttributes.Normal);
+                    LoggerHelper.Info($"新的同名主程序已复制完成：源文件={sourceFile}，目标文件={targetFile}");
+                }, cancellationToken);
+
+                return true;
+            }
+            catch (IOException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                LoggerHelper.Warning($"替换当前运行中的同名主程序失败，准备重试：第 {i + 1}/{maxRetries} 次，源文件={sourceFile}，目标文件={targetFile}，原因={ex.Message}");
+                await Task.Delay(1000, cancellationToken);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LoggerHelper.Warning($"替换当前运行中的同名主程序被拒绝，准备重试：第 {i + 1}/{maxRetries} 次，源文件={sourceFile}，目标文件={targetFile}，原因={ex.Message}");
+                await Task.Delay(1000, cancellationToken);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasExecutableFileNameChanged(string currentExecutablePath, string nextExecutablePath)
+    {
+        if (string.IsNullOrWhiteSpace(currentExecutablePath) || string.IsNullOrWhiteSpace(nextExecutablePath))
+            return false;
+
+        var currentFileName = Path.GetFileName(currentExecutablePath);
+        var nextFileName = Path.GetFileName(nextExecutablePath);
+        return !string.Equals(currentFileName, nextFileName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsCurrentProcessExecutable(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        try
+        {
+            var currentProcessPath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(currentProcessPath))
+                currentProcessPath = Environment.ProcessPath ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(currentProcessPath))
+                return false;
+
+            return string.Equals(
+                Path.GetFullPath(filePath),
+                Path.GetFullPath(currentProcessPath),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
         }
     }
 
