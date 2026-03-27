@@ -939,7 +939,7 @@ public static class VersionChecker
 
             if (HasExecutableFileNameChanged(exeName, restartExecutablePath))
             {
-                TryRenameExecutableToBackup(exeName);
+                TryRenameExecutableToBackup(exeName, allowCurrentProcessExecutable: true);
             }
         }
 
@@ -2965,12 +2965,12 @@ public static class VersionChecker
         }
     }
 
-    private static void TryRenameExecutableToBackup(string executablePath)
+    private static void TryRenameExecutableToBackup(string executablePath, bool allowCurrentProcessExecutable = false)
     {
         if (string.IsNullOrWhiteSpace(executablePath))
             return;
 
-        if (IsCurrentProcessExecutable(executablePath))
+        if (!allowCurrentProcessExecutable && IsCurrentProcessExecutable(executablePath))
         {
             LoggerHelper.Warning($"已阻止将当前正在运行的主程序文件改名为 backupMFA：文件={executablePath}");
             return;
