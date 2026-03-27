@@ -178,9 +178,13 @@ public static class AgentHelper
             CreateNoWindow = true
         };
 
+        startInfo.Environment["MFA_INSTANCE_ID"] = processor.InstanceId;
+        startInfo.Environment["MFA_INSTANCE_NAME"] =
+            MaaProcessorManager.Instance.GetInstanceName(processor.InstanceId) ?? string.Empty;
+
         LoggerHelper.Info(
             $"Agent 启动命令：{program} {(program!.Contains("python") && replacedArgs.Contains(".py") && !replacedArgs.Any(arg => arg.Contains("-u")) ? "-u " : "")}{string.Join(" ", replacedArgs)} {ctx.Client.Id} "
-            + $"socket_id={ctx.Client.Id}");
+            + $"socket_id={ctx.Client.Id} instance_id={startInfo.Environment["MFA_INSTANCE_ID"]} instance_name={startInfo.Environment["MFA_INSTANCE_NAME"]}");
 
         IMaaAgentClient.AgentServerStartupMethod method = (s, directory) =>
         {
