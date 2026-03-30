@@ -760,7 +760,23 @@ public partial class TaskQueueViewModel : ViewModelBase
             }
         }
 
-        Processor.InstanceConfiguration.SetValue(ConfigurationKeys.TaskItems, TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+        var savedTaskItems = TaskItemViewModels
+            .Where(model => !model.IsResourceOptionItem)
+            .Select(model => model.InterfaceItem)
+            .ToList();
+        var currentTaskKeys = savedTaskItems
+            .Where(task => !string.IsNullOrWhiteSpace(task?.Name) && !string.IsNullOrWhiteSpace(task.Entry))
+            .Select(task => $"{task!.Name}{TaskLoader.NEW_SEPARATOR}{task.Entry}")
+            .Distinct()
+            .ToList();
+
+        Processor.InstanceConfiguration.SetValue(ConfigurationKeys.TaskItems, savedTaskItems);
+        Processor.InstanceConfiguration.SetValue(ConfigurationKeys.CurrentTasks, currentTaskKeys);
+
+        if (!string.IsNullOrWhiteSpace(preset.Name))
+            Processor.InstanceConfiguration.SetValue(ConfigurationKeys.InstancePresetKey, preset.Name);
+        else
+            Processor.InstanceConfiguration.RemoveValue(ConfigurationKeys.InstancePresetKey);
     }
 
     private void RefreshPresetOptionRuntimeState(MaaInterface.MaaInterfaceSelectOption option)
